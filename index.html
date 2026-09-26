@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NikitaWindowsFan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e14;
+    --panel:#11151d;
+    --panel-alt:#161b25;
+    --border:#232935;
+    --text:#dde3ea;
+    --muted:#7d8797;
+    --accent:#4da6ff;
+    --accent-dim:#2a4a6b;
+    --live:#ff5c5c;
+  }
+  body.light-theme{
+    --bg:#f4f5f7;
+    --panel:#ffffff;
+    --panel-alt:#eef1f5;
+    --border:#dbe0e6;
+    --text:#1c2128;
+    --muted:#66707c;
+    --accent:#2f6fed;
+    --accent-dim:#c9dcfc;
+    --live:#e0454c;
+  }
+  body.light-theme header.hero img{filter:invert(1);}
+  body.light-theme .player{background:#e9ecf1;}
+  body.light-theme .video-frame,body.light-theme #videoModalFrame{background:#e9ecf1;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans',sans-serif;
+    line-height:1.5;
+    min-height:100vh;
+  }
+  h1,h2,h3,.logotype,.tab,.taskbar-title{font-family:'Unbounded',sans-serif;}
+
+  /* Taskbar */
+  .taskbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:8px 16px;
+    background:#0a0d12;
+    border-bottom:1px solid var(--border);
+    font-size:13px;color:var(--muted);
+  }
+  .taskbar-title{font-size:12px;letter-spacing:.02em;color:var(--muted);}
+  .taskbar-right{display:flex;align-items:center;gap:14px;}
+  #clock{font-variant-numeric:tabular-nums;color:var(--text);}
+  .gear{
+    display:none;
+    cursor:pointer;background:none;border:1px solid var(--border);
+    color:var(--muted);border-radius:6px;width:26px;height:26px;
+    align-items:center;justify-content:center;font-size:14px;
+  }
+  .gear.visible{display:flex;}
+  .gear:hover{color:var(--accent);border-color:var(--accent-dim);}
+  .theme-toggle{
+    cursor:pointer;background:none;border:1px solid var(--border);
+    color:var(--muted);border-radius:6px;width:26px;height:26px;
+    display:flex;align-items:center;justify-content:center;font-size:13px;
+  }
+  .theme-toggle:hover{color:var(--accent);border-color:var(--accent-dim);}
+
+  /* Header */
+  header.hero{
+    display:flex;align-items:center;gap:20px;
+    padding:36px 24px 20px;
+    max-width:1040px;margin:0 auto;
+  }
+  header.hero img{height:64px;width:auto;flex-shrink:0;}
+  .logotype{font-size:26px;font-weight:800;margin:0;letter-spacing:-.01em;}
+  .tagline{color:var(--muted);margin:6px 0 0;font-size:14.5px;max-width:520px;}
+
+  /* Tabs, styled like window tabs */
+  nav.tabs{
+    max-width:1040px;margin:0 auto;padding:0 24px;
+    display:flex;gap:4px;
+    border-bottom:1px solid var(--border);
+  }
+  .tab{
+    background:var(--panel-alt);
+    color:var(--muted);
+    border:1px solid var(--border);
+    border-bottom:none;
+    padding:10px 20px;
+    border-radius:8px 8px 0 0;
+    cursor:pointer;
+    font-size:13.5px;font-weight:500;
+    transform:translateY(1px);
+  }
+  .tab.active{
+    background:var(--panel);
+    color:var(--text);
+    border-color:var(--accent-dim);
+    box-shadow:inset 0 2px 0 var(--accent);
+  }
+
+  main{
+    max-width:1040px;margin:0 auto;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-top:none;
+    padding:28px 24px 48px;
+    min-height:420px;
+  }
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* Home: player + schedule */
+  .home-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:22px;}
+  @media(max-width:720px){.home-grid{grid-template-columns:1fr;}}
+
+  .player{
+    background:#05070a;
+    border:1px solid var(--border);
+    border-radius:4px;
+    aspect-ratio:16/9;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    position:relative;
+    color:var(--muted);
+  }
+  .player .play-btn{
+    width:56px;height:56px;border-radius:50%;
+    border:2px solid var(--accent);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--accent);font-size:20px;margin-bottom:14px;
+  }
+  .live-badge{
+    position:absolute;top:12px;left:12px;
+    display:flex;align-items:center;gap:6px;
+    font-size:11.5px;color:var(--muted);
+    border:1px solid var(--border);padding:3px 8px;border-radius:20px;
+  }
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--live);}
+
+  h3.block-title{
+    font-size:13px;text-transform:none;color:var(--muted);
+    margin:0 0 12px;font-weight:600;letter-spacing:.01em;
+  }
+  .schedule{border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .schedule-item{
+    display:flex;gap:14px;padding:11px 14px;
+    border-bottom:1px solid var(--border);font-size:13.5px;
+  }
+  .schedule-item:last-child{border-bottom:none;}
+  .schedule-item time{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0;width:44px;}
+  .schedule-note{color:var(--muted);font-size:12px;margin-top:10px;}
+
+  /* News */
+  .news-item{
+    display:flex;gap:16px;padding:16px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .news-item:first-child{padding-top:0;}
+  .news-date{
+    color:var(--muted);font-size:12px;width:76px;flex-shrink:0;
+    padding-top:3px;
+  }
+  .news-body h3{margin:0 0 6px;font-size:16px;font-weight:700;}
+  .news-body p{margin:0;color:#b9c1cc;font-size:14px;}
+  .news-empty{color:var(--muted);font-size:13.5px;}
+
+  /* About */
+  .about-text{max-width:640px;color:#c7cdd6;font-size:14.5px;white-space:pre-wrap;}
+
+  footer{
+    max-width:1040px;margin:0 auto;padding:18px 24px 40px;
+    color:var(--muted);font-size:12px;display:flex;justify-content:space-between;
+  }
+  footer a{color:var(--muted);}
+
+  /* Admin modal */
+  .overlay{
+    display:none;position:fixed;inset:0;background:rgba(4,6,9,.72);
+    align-items:center;justify-content:center;z-index:50;padding:20px;
+  }
+  .overlay.active{display:flex;}
+  .modal{
+    background:var(--panel);border:1px solid var(--border);border-radius:8px;
+    width:100%;max-width:480px;max-height:86vh;overflow:auto;
+    padding:22px 22px 26px;
+  }
+  .modal h2{font-size:16px;margin:0 0 16px;}
+  .modal label{display:block;font-size:12px;color:var(--muted);margin:12px 0 5px;}
+  .modal input,.modal textarea{
+    width:100%;background:#0a0d12;border:1px solid var(--border);
+    color:var(--text);border-radius:5px;padding:9px 10px;font-family:inherit;font-size:13.5px;
+  }
+  .modal textarea{min-height:90px;resize:vertical;}
+  .btn{
+    background:var(--accent);color:#06111c;border:none;border-radius:5px;
+    padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:12px;
+  }
+  .btn.secondary{background:none;border:1px solid var(--border);color:var(--text);}
+  .btn.danger{background:none;border:1px solid #5a2b2b;color:#ff9090;padding:5px 10px;font-size:12px;}
+  .modal-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .admin-close{float:right;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;}
+  .admin-list{margin-top:8px;border-top:1px solid var(--border);}
+  .admin-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;gap:10px;
+  }
+  .admin-row span{color:var(--muted);}
+  .err{color:#ff9090;font-size:12.5px;margin-top:8px;display:none;}
+  hr.divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
+
+  /* Video */
+  .video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;}
+  .video-card{
+    background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;
+    padding:14px;font-size:13.5px;cursor:pointer;color:var(--text);
+    display:flex;align-items:center;gap:8px;line-height:1.3;
+  }
+  .video-card:hover{border-color:var(--accent-dim);color:var(--accent);}
+  .video-frame{aspect-ratio:16/9;width:100%;border:1px solid var(--border);border-radius:4px;overflow:hidden;background:#05070a;}
+  .video-frame iframe,.video-frame video{width:100%;height:100%;display:block;border:none;}
+  .video-modal{max-width:720px;}
+  .video-modal .video-frame{margin-bottom:14px;}
+
+  /* Mobile */
+  @media(max-width:600px){
+    header.hero{padding:22px 16px 14px;gap:12px;}
+    header.hero img{height:44px;}
+    .logotype{font-size:19px;}
+    nav.tabs{padding:0 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    .tab{padding:9px 14px;font-size:12.5px;white-space:nowrap;}
+    main{padding:20px 16px 36px;}
+    .home-grid{gap:16px;}
+    .modal{padding:18px 16px 20px;}
+    footer{padding:14px 16px 28px;font-size:11.5px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="taskbar">
+  <span class="taskbar-title">NIKITAWINDOWSFAN · В ЭФИРЕ</span>
+  <div class="taskbar-right">
+    <span id="clock">--:--:--</span>
+    <button class="theme-toggle" id="themeToggle" title="Светлая/тёмная тема">☀️</button>
+    <button class="gear" id="adminBtn" title="Админка">⚙</button>
+  </div>
+</div>
+
+<header class="hero">
+  <img src="logo.png" alt="Логотип NikitaWindowsFan">
+  <div>
+    <p class="logotype" style="margin:0;">NikitaWindowsFan</p>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="tab active" data-tab="home">Главная</div>
+  <div class="tab" data-tab="news">Новости</div>
+  <div class="tab" data-tab="video">Видео</div>
+  <div class="tab" data-tab="about">О нас</div>
+  <div class="tab" data-tab="updates">Что нового</div>
+</nav>
+
+<main>
+
+  <section class="view active" id="view-home">
+    <div class="home-grid">
+      <div>
+        <h3 class="block-title">Прямой эфир</h3>
+        <div class="player">
+          <span class="live-badge"><span class="live-dot"></span>скоро в эфире</span>
+          <div class="play-btn">▶</div>
+          <span>плеер появится здесь</span>
+        </div>
+      </div>
+      <div>
+        <h3 class="block-title">Расписание</h3>
+        <div class="schedule" id="schedule"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-news">
+    <h3 class="block-title">Новости канала</h3>
+    <div id="newsList"></div>
+  </section>
+
+  <section class="view" id="view-video">
+    <h3 class="block-title">Видео</h3>
+    <div id="videoList"></div>
+  </section>
+
+  <section class="view" id="view-about">
+    <h3 class="block-title">О нас</h3>
+    <p class="about-text" id="aboutText"></p>
+  </section>
+
+  <section class="view" id="view-updates">
+    <h3 class="block-title">Что нового</h3>
+    <div id="updatesList"></div>
+  </section>
+
+</main>
+
+<footer>
+  <span>© NikitaWindowsFan</span>
+</footer>
+
+<!-- Просмотр видео -->
+<div class="overlay" id="videoOverlay">
+  <div class="modal video-modal">
+    <button class="admin-close" id="closeVideoModal">✕</button>
+    <div class="video-frame" id="videoModalFrame"></div>
+    <a href="#" target="_blank" rel="noopener" id="videoModalLink" class="btn" style="display:none;text-decoration:none;">Открыть в YouTube</a>
+  </div>
+</div>
+
+<!-- Админ-панель -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="admin-close" id="closeModal">✕</button>
+
+    <div id="loginBox">
+      <h2>Вход в админку</h2>
+      <label for="pwd">Пароль</label>
+      <input type="password" id="pwd">
+      <p class="err" id="loginErr">Неверный пароль</p>
+      <button class="btn" id="loginBtn">Войти</button>
+    </div>
+
+    <div id="adminBox" style="display:none;">
+      <h2>Панель управления</h2>
+
+      <label>Заголовок новости</label>
+      <input type="text" id="newsTitle" placeholder="Например: Новый выпуск вышел">
+      <label>Текст новости</label>
+      <textarea id="newsBody" placeholder="Краткое описание..."></textarea>
+      <div class="modal-row">
+        <button class="btn" id="addNewsBtn">Опубликовать</button>
+      </div>
+
+      <div class="admin-list" id="adminNewsList"></div>
+
+      <hr class="divider">
+
+      <label>Заголовок обновления</label>
+      <input type="text" id="updateTitle" placeholder="Например: Обновили дизайн">
+      <label>Текст обновления</label>
+      <textarea id="updateBody" placeholder="Что изменилось..."></textarea>
+      <div class="modal-row">
+        <button class="btn" id="addUpdateBtn">Добавить</button>
+      </div>
+      <div class="admin-list" id="adminUpdatesList"></div>
+
+      <hr class="divider">
+
+      <label>Время</label>
+      <input type="text" id="schedTime" placeholder="18:00">
+      <label>Программа</label>
+      <input type="text" id="schedTitle" placeholder="Название передачи">
+      <div class="modal-row">
+        <button class="btn" id="addSchedBtn">Добавить в расписание</button>
+      </div>
+      <div class="admin-list" id="adminScheduleList"></div>
+
+      <hr class="divider">
+
+      <label>Название видео</label>
+      <input type="text" id="videoTitle" placeholder="Название">
+      <label>Ссылка (YouTube или прямая ссылка на видео)</label>
+      <input type="text" id="videoUrl" placeholder="https://youtube.com/watch?v=...">
+      <div class="modal-row">
+        <button class="btn" id="addVideoBtn">Добавить видео</button>
+      </div>
+      <div class="admin-list" id="adminVideoList"></div>
+
+      <hr class="divider">
+
+      <label>Текст блока «О нас»</label>
+      <textarea id="aboutEdit" style="min-height:140px;"></textarea>
+      <div class="modal-row">
+        <button class="btn" id="saveAboutBtn">Сохранить описание</button>
+      </div>
+
+      <hr class="divider">
+      <button class="btn secondary" id="logoutBtn">Выйти</button>
+      <button class="btn secondary" id="forgetDeviceBtn">Скрыть шестерёнку на этом устройстве</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// ==== НАСТРОЙКИ АДМИНКИ ====
+// Смени пароль перед публикацией на GitHub!
+const ADMIN_PASSWORD = "nikita2026";
+
+// ==== FIREBASE (общее хранилище для всех посетителей) ====
+// Вставь сюда конфиг своего проекта из консоли Firebase (Project settings → General → Your apps)
+const firebaseConfig = {
+  apiKey: "AIzaSyAm2dGMjAGREqYw3sXaZAenQLm64zfVUYI",
+  authDomain: "nikitawindowsfan.firebaseapp.com",
+  projectId: "nikitawindowsfan",
+  storageBucket: "nikitawindowsfan.firebasestorage.app",
+  messagingSenderId: "355878385321",
+  appId: "1:355878385321:web:2681e378d3cebf6b285bb8"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const siteRef = db.collection("public").doc("site");
+
+const DEFAULT_NEWS = [
+  {date:"23.09.2026", title:"Сайт запущен", body:"Начинаем вести канал прямо здесь. Расписание и плеер скоро заработают по-настоящему."}
+];
+const DEFAULT_ABOUT = "NikitaWindowsFan — независимый канал о Windows: от винтажных версий до свежих сборок. Разборы, ностальгия, эфиры и разговоры обо всём, что связано с любимой ОС. Веду канал я сам, без студии и большой команды — просто по любви к теме.";
+const DEFAULT_SCHEDULE = [
+  {time:"18:00", title:"Разбор автозагрузки — что тормозит систему"},
+  {time:"19:00", title:"Ретро-обзор: Windows 98"},
+  {time:"20:30", title:"Прямой эфир: вопросы в чате"},
+  {time:"22:00", title:"Ночной плейлист заставок"}
+];
+const DEFAULT_VIDEOS = [];
+const DEFAULT_UPDATES = [];
+
+let siteData = {
+  news: DEFAULT_NEWS,
+  schedule: DEFAULT_SCHEDULE,
+  videos: DEFAULT_VIDEOS,
+  about: DEFAULT_ABOUT,
+  updates: DEFAULT_UPDATES
+};
+
+function saveSite(){
+  siteRef.set(siteData);
+}
+
+siteRef.onSnapshot(snap=>{
+  if(snap.exists){
+    siteData = snap.data();
+  }else{
+    siteRef.set(siteData);
+  }
+  renderNews();
+  renderSchedule();
+  renderVideos();
+  renderAbout();
+  renderUpdates();
+}, err=>{
+  console.error("Firestore недоступен, проверь firebaseConfig и правила доступа:", err);
+});
+
+function renderNews(){
+  const list = siteData.news || [];
+  const el = document.getElementById("newsList");
+  const adminEl = document.getElementById("adminNewsList");
+  if(!list.length){
+    el.innerHTML = '<p class="news-empty">Новостей пока нет.</p>';
+  }else{
+    el.innerHTML = list.map(n =>
+      `<div class="news-item"><div class="news-date">${n.date}</div>
+       <div class="news-body"><h3>${escapeHtml(n.title)}</h3><p>${escapeHtml(n.body)}</p></div></div>`
+    ).join("");
+  }
+  adminEl.innerHTML = list.map((n,i) =>
+    `<div class="admin-row"><span>${n.date} — ${escapeHtml(n.title)}</span>
+     <button class="btn danger" data-idx="${i}">Удалить</button></div>`
+  ).join("");
+  adminEl.querySelectorAll("button[data-idx]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const idx = parseInt(btn.dataset.idx,10);
+      siteData.news.splice(idx,1);
+      saveSite();
+    };
+  });
+}
+function renderAbout(){
+  document.getElementById("aboutText").textContent = siteData.about || "";
+  document.getElementById("aboutEdit").value = siteData.about || "";
+}
+function renderSchedule(){
+  const list = siteData.schedule || [];
+  const el = document.getElementById("schedule");
+  const adminEl = document.getElementById("adminScheduleList");
+  if(!list.length){
+    el.innerHTML = '<p class="news-empty" style="padding:14px;">Расписание пока пустое.</p>';
+  }else{
+    el.innerHTML = list.map(s =>
+      `<div class="schedule-item"><time>${escapeHtml(s.time)}</time><span>${escapeHtml(s.title)}</span></div>`
+    ).join("");
+  }
+  adminEl.innerHTML = list.map((s,i) =>
+    `<div class="admin-row"><span>${escapeHtml(s.time)} — ${escapeHtml(s.title)}</span>
+     <button class="btn danger" data-sidx="${i}">Удалить</button></div>`
+  ).join("");
+  adminEl.querySelectorAll("button[data-sidx]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const idx = parseInt(btn.dataset.sidx,10);
+      siteData.schedule.splice(idx,1);
+      saveSite();
+    };
+  });
+}
+function getYouTubeId(url){
+  const patterns = [
+    /youtu\.be\/([A-Za-z0-9_-]{6,})/,
+    /youtube\.com\/watch\?v=([A-Za-z0-9_-]{6,})/,
+    /youtube\.com\/embed\/([A-Za-z0-9_-]{6,})/,
+    /youtube\.com\/shorts\/([A-Za-z0-9_-]{6,})/
+  ];
+  for(const p of patterns){
+    const m = url.match(p);
+    if(m) return m[1];
+  }
+  return null;
+}
+function renderVideos(){
+  const list = siteData.videos || [];
+  const el = document.getElementById("videoList");
+  const adminEl = document.getElementById("adminVideoList");
+  if(!list.length){
+    el.innerHTML = '<p class="news-empty">Видео пока нет.</p>';
+  }else{
+    el.innerHTML = '<div class="video-grid">' + list.map((v,i) =>
+      `<div class="video-card" data-vopen="${i}">▶ ${escapeHtml(v.title)}</div>`
+    ).join("") + '</div>';
+    el.querySelectorAll(".video-card").forEach(card=>{
+      card.onclick = ()=> openVideoModal(parseInt(card.dataset.vopen,10));
+    });
+  }
+  adminEl.innerHTML = list.map((v,i) =>
+    `<div class="admin-row"><span>${escapeHtml(v.title)}</span>
+     <button class="btn danger" data-vidx="${i}">Удалить</button></div>`
+  ).join("");
+  adminEl.querySelectorAll("button[data-vidx]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const idx = parseInt(btn.dataset.vidx,10);
+      siteData.videos.splice(idx,1);
+      saveSite();
+    };
+  });
+}
+function openVideoModal(idx){
+  const v = (siteData.videos || [])[idx];
+  if(!v) return;
+  const frameEl = document.getElementById("videoModalFrame");
+  const linkEl = document.getElementById("videoModalLink");
+  const yid = getYouTubeId(v.url);
+  if(yid){
+    frameEl.innerHTML = `<iframe src="https://www.youtube.com/embed/${yid}" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+    linkEl.href = v.url;
+    linkEl.style.display = "inline-block";
+  }else{
+    frameEl.innerHTML = `<video controls src="${escapeAttr(v.url)}"></video>`;
+    linkEl.style.display = "none";
+  }
+  document.getElementById("videoOverlay").classList.add("active");
+}
+function closeVideoModal(){
+  document.getElementById("videoOverlay").classList.remove("active");
+  document.getElementById("videoModalFrame").innerHTML = "";
+}
+function renderUpdates(){
+  const list = siteData.updates || [];
+  const el = document.getElementById("updatesList");
+  const adminEl = document.getElementById("adminUpdatesList");
+  if(!list.length){
+    el.innerHTML = '<p class="news-empty">Обновлений пока нет.</p>';
+  }else{
+    el.innerHTML = list.map(u =>
+      `<div class="news-item"><div class="news-date">${u.date}</div>
+       <div class="news-body"><h3>${escapeHtml(u.title)}</h3><p>${escapeHtml(u.body)}</p></div></div>`
+    ).join("");
+  }
+  adminEl.innerHTML = list.map((u,i) =>
+    `<div class="admin-row"><span>${u.date} — ${escapeHtml(u.title)}</span>
+     <button class="btn danger" data-uidx="${i}">Удалить</button></div>`
+  ).join("");
+  adminEl.querySelectorAll("button[data-uidx]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const idx = parseInt(btn.dataset.uidx,10);
+      siteData.updates.splice(idx,1);
+      saveSite();
+    };
+  });
+}
+function escapeHtml(str){
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
+}
+function escapeAttr(str){
+  return String(str).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// Вкладки
+document.querySelectorAll(".tab").forEach(tab=>{
+  tab.onclick = ()=>{
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("view-"+tab.dataset.tab).classList.add("active");
+  };
+});
+
+// Часы
+function tickClock(){
+  const now = new Date();
+  document.getElementById("clock").textContent = now.toLocaleTimeString("ru-RU");
+}
+setInterval(tickClock,1000); tickClock();
+
+// Тема
+const themeToggle = document.getElementById("themeToggle");
+function applyTheme(theme){
+  document.body.classList.toggle("light-theme", theme === "light");
+  themeToggle.textContent = theme === "light" ? "🌙" : "☀️";
+}
+let savedTheme = "dark";
+try{ savedTheme = localStorage.getItem("nwf_theme") || "dark"; }catch(e){}
+applyTheme(savedTheme);
+themeToggle.onclick = ()=>{
+  const next = document.body.classList.contains("light-theme") ? "dark" : "light";
+  try{ localStorage.setItem("nwf_theme", next); }catch(e){}
+  applyTheme(next);
+};
+
+// Видео-модалка
+document.getElementById("closeVideoModal").onclick = closeVideoModal;
+document.getElementById("videoOverlay").onclick = (e)=>{
+  if(e.target.id === "videoOverlay") closeVideoModal();
+};
+
+// Админка: шестерёнка видна только на устройстве, где уже вводили верный пароль.
+// Первый раз открой консоль (F12 → Console) и введи admin() — дальше шестерёнка останется тут сама.
+const overlay = document.getElementById("overlay");
+const gearBtn = document.getElementById("adminBtn");
+
+function refreshGearVisibility(){
+  const isMyDevice = localStorage.getItem("nwf_device") === "1";
+  gearBtn.classList.toggle("visible", isMyDevice);
+}
+refreshGearVisibility();
+
+function openAdminPanel(){
+  overlay.classList.add("active");
+  const loggedIn = sessionStorage.getItem("nwf_admin") === "1";
+  document.getElementById("loginBox").style.display = loggedIn ? "none" : "block";
+  document.getElementById("adminBox").style.display = loggedIn ? "block" : "none";
+  return "Панель открыта";
+}
+window.admin = openAdminPanel;
+gearBtn.onclick = openAdminPanel;
+document.getElementById("closeModal").onclick = ()=> overlay.classList.remove("active");
+overlay.onclick = (e)=>{ if(e.target === overlay) overlay.classList.remove("active"); };
+
+document.getElementById("loginBtn").onclick = ()=>{
+  const val = document.getElementById("pwd").value;
+  if(val === ADMIN_PASSWORD){
+    try{
+      sessionStorage.setItem("nwf_admin","1");
+      localStorage.setItem("nwf_device","1");
+    }catch(e){}
+    refreshGearVisibility();
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("adminBox").style.display = "block";
+    document.getElementById("loginErr").style.display = "none";
+  }else{
+    document.getElementById("loginErr").style.display = "block";
+  }
+};
+document.getElementById("logoutBtn").onclick = ()=>{
+  try{ sessionStorage.removeItem("nwf_admin"); }catch(e){}
+  overlay.classList.remove("active");
+};
+document.getElementById("forgetDeviceBtn").onclick = ()=>{
+  try{
+    sessionStorage.removeItem("nwf_admin");
+    localStorage.removeItem("nwf_device");
+  }catch(e){}
+  refreshGearVisibility();
+  overlay.classList.remove("active");
+};
+
+document.getElementById("addNewsBtn").onclick = ()=>{
+  const title = document.getElementById("newsTitle").value.trim();
+  const body = document.getElementById("newsBody").value.trim();
+  if(!title) return;
+  const d = new Date();
+  const date = String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."+d.getFullYear();
+  siteData.news.unshift({date, title, body});
+  saveSite();
+  document.getElementById("newsTitle").value = "";
+  document.getElementById("newsBody").value = "";
+};
+
+document.getElementById("addUpdateBtn").onclick = ()=>{
+  const title = document.getElementById("updateTitle").value.trim();
+  const body = document.getElementById("updateBody").value.trim();
+  if(!title) return;
+  const d = new Date();
+  const date = String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."+d.getFullYear();
+  siteData.updates.unshift({date, title, body});
+  saveSite();
+  document.getElementById("updateTitle").value = "";
+  document.getElementById("updateBody").value = "";
+};
+
+document.getElementById("addSchedBtn").onclick = ()=>{
+  const time = document.getElementById("schedTime").value.trim();
+  const title = document.getElementById("schedTitle").value.trim();
+  if(!time || !title) return;
+  siteData.schedule.push({time, title});
+  saveSite();
+  document.getElementById("schedTime").value = "";
+  document.getElementById("schedTitle").value = "";
+};
+
+document.getElementById("addVideoBtn").onclick = ()=>{
+  const title = document.getElementById("videoTitle").value.trim();
+  const url = document.getElementById("videoUrl").value.trim();
+  if(!title || !url) return;
+  siteData.videos.unshift({title, url});
+  saveSite();
+  document.getElementById("videoTitle").value = "";
+  document.getElementById("videoUrl").value = "";
+};
+
+document.getElementById("saveAboutBtn").onclick = ()=>{
+  siteData.about = document.getElementById("aboutEdit").value;
+  saveSite();
+};
+
+</script>
+</body>
+</html>
