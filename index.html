@@ -167,6 +167,48 @@
   .live-badge.off .live-dot{background:var(--muted);}
   .live-dot{width:7px;height:7px;border-radius:50%;background:var(--live);}
 
+  /* Тестовый плеер (виден и переключается только администратору) */
+  .player-admin-bar{max-width:1040px;margin:0 auto 10px;display:none;}
+  .player-admin-bar .btn{margin-top:0;}
+  .player video#cVideo{
+    position:absolute;inset:0;width:100%;height:100%;
+    background:#000;object-fit:contain;z-index:0;
+  }
+  .cp-canvas{
+    position:absolute;inset:0;width:100%;height:100%;z-index:1;
+    background:#000;image-rendering:pixelated;image-rendering:crisp-edges;
+  }
+  .cp-controls{
+    position:absolute;left:0;right:0;bottom:0;z-index:7;
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    padding:8px 10px;
+    background:linear-gradient(0deg, rgba(5,7,10,.85), rgba(5,7,10,0));
+  }
+  .cp-btn{
+    cursor:pointer;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+    color:#fff;border-radius:5px;padding:5px 9px;font-size:12.5px;line-height:1.2;
+    font-family:inherit;
+  }
+  .cp-btn:hover{background:rgba(255,255,255,.2);}
+  .cp-btn.cp-live{display:none;border-color:var(--live);color:#ffb3b3;font-weight:700;}
+  .cp-btn.cp-live.show{display:inline-flex;}
+  .cp-seek-wrap{flex:1 1 120px;display:flex;align-items:center;min-width:100px;}
+  .cp-seek-wrap input[type=range]{width:100%;accent-color:var(--accent);}
+  .cp-time{font-size:11px;color:#e4e8ed;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .cp-quality-wrap{position:relative;}
+  .cp-quality-menu{
+    display:none;position:absolute;bottom:36px;right:0;z-index:8;
+    background:var(--panel);border:1px solid var(--border);border-radius:6px;
+    min-width:160px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4);
+  }
+  .cp-quality-menu.open{display:block;}
+  .cp-quality-menu button{
+    display:block;width:100%;text-align:left;background:none;border:none;
+    color:var(--text);font-size:12.5px;padding:8px 10px;cursor:pointer;font-family:inherit;
+  }
+  .cp-quality-menu button:hover{background:var(--panel-alt);}
+  .cp-quality-menu button.on{color:var(--accent);}
+
   h3.block-title{
     font-size:13px;text-transform:none;color:var(--muted);
     margin:0 0 12px;font-weight:600;letter-spacing:.01em;
@@ -370,12 +412,47 @@
     <div class="home-grid">
       <div>
         <h3 class="block-title">Прямой эфир</h3>
-        <div class="player">
+
+        <div class="player-admin-bar" id="playerAdminBar">
+          <button class="btn secondary" id="togglePlayerBtn">🧪 Тестовый плеер: выкл</button>
+        </div>
+
+        <div class="player" id="stablePlayerWrap">
           <span class="live-badge off" id="liveBadge"><span class="live-dot"></span><span id="liveText">проверяем эфир…</span></span>
           <video id="livePlayer" class="video-js vjs-big-play-centered" controls playsinline preload="auto"></video>
           <div class="offline" id="offlineBox">
             <strong>NikitaWindowsFan сейчас не вещает</strong>
             <span>Следить за новостями в тг: <a href="https://t.me/NikitaWindowsFan" target="_blank" rel="noopener">@NikitaWindowsFan</a></span>
+          </div>
+        </div>
+
+        <!-- Тестовый плеер: свой, с качеством и перемоткой на 30 минут назад.
+             Виден и включается ТОЛЬКО тебе, после входа в админку (см. playerAdminBar выше). -->
+        <div class="player" id="customPlayerWrap" style="display:none;">
+          <span class="live-badge off" id="cLiveBadge"><span class="live-dot"></span><span id="cLiveText">проверяем эфир…</span></span>
+          <video id="cVideo" playsinline muted preload="auto"></video>
+          <canvas class="cp-canvas" id="cpCanvas" style="display:none;"></canvas>
+          <div class="offline" id="cOfflineBox">
+            <strong>NikitaWindowsFan сейчас не вещает</strong>
+            <span>Следить за новостями в тг: <a href="https://t.me/NikitaWindowsFan" target="_blank" rel="noopener">@NikitaWindowsFan</a></span>
+          </div>
+          <div class="cp-controls">
+            <button class="cp-btn" id="cpPlay" title="Пауза/Плей">⏸</button>
+            <button class="cp-btn" id="cpMute" title="Звук">🔇</button>
+            <div class="cp-seek-wrap">
+              <input type="range" id="cpSeek" min="0" max="1800" value="1800" step="1" title="Перемотка (до 30 минут назад)">
+            </div>
+            <span class="cp-time" id="cpTime">В ЭФИРЕ</span>
+            <button class="cp-btn cp-live" id="cpGoLive" title="Вернуться к прямому эфиру">● LIVE</button>
+            <div class="cp-quality-wrap">
+              <button class="cp-btn" id="cpQualityBtn">Авто ▾</button>
+              <div class="cp-quality-menu" id="cpQualityMenu">
+                <button type="button" data-q="auto" class="on">Авто (источник)</button>
+                <button type="button" data-q="mid">Среднее</button>
+                <button type="button" data-q="low">Низкое (экономия)</button>
+              </div>
+            </div>
+            <button class="cp-btn" id="cpFullscreen" title="Во весь экран">⛶</button>
           </div>
         </div>
       </div>
@@ -537,6 +614,8 @@
 <script src="https://cdn.jsdelivr.net/npm/video.js@8.16.1/dist/video.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/videojs-contrib-quality-levels@4.1.0/dist/videojs-contrib-quality-levels.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/videojs-http-source-selector@1.1.6/dist/videojs-http-source-selector.min.js"></script>
+<!-- Для тестового (admin-only) плеера — обычный video.js тут не используется -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -551,6 +630,14 @@ const ADMIN_EMAIL = "nikita@nikitawindowsfan.local"; // замени на реа
 // ==== ПРЯМОЙ ЭФИР (HLS) ====
 // Для GitHub Pages (https) ссылка тоже должна быть https, иначе браузер заблокирует поток.
 const STREAM_URL = "https://testilve.duckdns.org/live/NikitaWindowsFan/index.m3u8";
+
+// ==== ТЕСТОВЫЙ ПЛЕЕР: перемотка назад (DVR) ====
+// Запросы идут в Playback API MediaMTX через Caddy (см. Caddyfile, путь /playback/*).
+// Запись на диске хранится recordDeleteAfter в mediamtx.yml (сейчас 35 минут, с запасом).
+const PLAYBACK_BASE = "https://testilve.duckdns.org/playback";
+const DVR_PATH = "live/NikitaWindowsFan";
+const DVR_WINDOW_SECONDS = 1800; // окно перемотки — 30 минут
+const DVR_CHUNK_SECONDS = 600;   // запрашиваем запись кусками по 10 минут
 
 // ==== FIREBASE (общее хранилище для всех посетителей) ====
 // Вставь сюда конфиг своего проекта из консоли Firebase (Project settings → General → Your apps)
@@ -941,6 +1028,214 @@ livePlayer.on("error", ()=>{
   scheduleRetry();
 });
 livePlayer.ready(loadStream);
+
+// ==== Тестовый плеер (admin-only): свой плеер, качество, перемотка на 30 мин ====
+// Эта часть не грузит и не трогает стабильный плеер выше — работает только
+// если администратор явно включил тестовый плеер кнопкой (см. ниже).
+const cVideo = document.getElementById("cVideo");
+const cpCanvas = document.getElementById("cpCanvas");
+const cpCtx = cpCanvas.getContext("2d", { alpha:false });
+const cOfflineBox = document.getElementById("cOfflineBox");
+const cLiveBadge = document.getElementById("cLiveBadge");
+const cLiveText = document.getElementById("cLiveText");
+const cpPlay = document.getElementById("cpPlay");
+const cpMute = document.getElementById("cpMute");
+const cpSeek = document.getElementById("cpSeek");
+const cpTime = document.getElementById("cpTime");
+const cpGoLive = document.getElementById("cpGoLive");
+const cpFullscreen = document.getElementById("cpFullscreen");
+const cpQualityBtn = document.getElementById("cpQualityBtn");
+const cpQualityMenu = document.getElementById("cpQualityMenu");
+
+let customPlayerInited = false;
+let cHls = null;
+let cRetryTimer = null;
+let cFailCount = 0;
+let dvrMode = false;
+let dvrChunkStart = null;   // Date — с какого момента начинается текущий кусок записи
+let seekDragging = false;
+let pixelateRAF = null;
+let currentQuality = "auto";
+
+function setCLive(on){
+  cOfflineBox.classList.toggle("show", !on);
+  cLiveBadge.classList.toggle("off", !on);
+  if(!dvrMode) cLiveText.textContent = on ? "в эфире" : "не в эфире";
+}
+function formatMMSS(totalSeconds){
+  totalSeconds = Math.max(0, Math.round(totalSeconds));
+  const m = Math.floor(totalSeconds/60);
+  const s = totalSeconds%60;
+  return (m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+}
+function isoNoMillis(d){
+  return d.toISOString().replace(/\.\d+Z$/, "Z");
+}
+
+function stopLiveHls(){
+  if(cHls){ try{ cHls.destroy(); }catch(e){} cHls = null; }
+}
+function loadCustomLive(){
+  dvrMode = false;
+  cpGoLive.classList.remove("show");
+  stopLiveHls();
+  cVideo.removeAttribute("src");
+  if(window.Hls && Hls.isSupported()){
+    cHls = new Hls({ lowLatencyMode:true });
+    cHls.loadSource(STREAM_URL);
+    cHls.attachMedia(cVideo);
+    cHls.on(Hls.Events.ERROR, (evt,data)=>{
+      if(data && data.fatal){ setCLive(false); scheduleCRetry(); }
+    });
+  }else if(cVideo.canPlayType("application/vnd.apple.mpegurl")){
+    cVideo.src = STREAM_URL;
+  }else{
+    console.warn("Этот браузер не умеет воспроизводить HLS даже через hls.js");
+  }
+  cVideo.muted = true;
+  const p = cVideo.play();
+  if(p && p.catch) p.catch(()=>{});
+}
+function scheduleCRetry(){
+  clearTimeout(cRetryTimer);
+  cFailCount++;
+  const delay = cFailCount <= 4 ? 2000 : 15000;
+  cRetryTimer = setTimeout(loadCustomLive, delay);
+}
+
+function dvrChunkUrl(start){
+  return PLAYBACK_BASE + "/get?path=" + encodeURIComponent(DVR_PATH)
+    + "&start=" + encodeURIComponent(isoNoMillis(start))
+    + "&duration=" + DVR_CHUNK_SECONDS;
+}
+function playDvrFrom(secondsAgo){
+  dvrMode = true;
+  clearTimeout(cRetryTimer);
+  stopLiveHls();
+  const start = new Date(Date.now() - secondsAgo*1000);
+  dvrChunkStart = start;
+  cVideo.src = dvrChunkUrl(start);
+  cVideo.muted = false;
+  const p = cVideo.play();
+  if(p && p.catch) p.catch(()=>{});
+  cLiveText.textContent = "запись · " + start.toLocaleTimeString("ru-RU");
+  cLiveBadge.classList.add("off");
+  cOfflineBox.classList.remove("show");
+  cpGoLive.classList.add("show");
+}
+function goLive(){
+  if(!seekDragging) cpSeek.value = cpSeek.max;
+  loadCustomLive();
+}
+cVideo.addEventListener("ended", ()=>{
+  if(!dvrMode) return;
+  const next = new Date(dvrChunkStart.getTime() + DVR_CHUNK_SECONDS*1000);
+  if(Date.now() - next.getTime() < 5000){
+    goLive();
+  }else{
+    dvrChunkStart = next;
+    cVideo.src = dvrChunkUrl(next);
+    const p = cVideo.play();
+    if(p && p.catch) p.catch(()=>{});
+  }
+});
+cVideo.addEventListener("timeupdate", ()=>{
+  if(!dvrMode || seekDragging || !dvrChunkStart) return;
+  const playedAt = dvrChunkStart.getTime() + cVideo.currentTime*1000;
+  const secondsAgo = (Date.now() - playedAt)/1000;
+  const sliderVal = Math.min(DVR_WINDOW_SECONDS, Math.max(0, DVR_WINDOW_SECONDS - secondsAgo));
+  cpSeek.value = sliderVal;
+  cpTime.textContent = "−" + formatMMSS(secondsAgo);
+});
+
+cpSeek.addEventListener("input", ()=>{
+  seekDragging = true;
+  const secondsAgo = DVR_WINDOW_SECONDS - parseInt(cpSeek.value,10);
+  cpTime.textContent = secondsAgo < 5 ? "В ЭФИРЕ" : "−" + formatMMSS(secondsAgo);
+});
+cpSeek.addEventListener("change", ()=>{
+  seekDragging = false;
+  const secondsAgo = DVR_WINDOW_SECONDS - parseInt(cpSeek.value,10);
+  if(secondsAgo < 5){ goLive(); }
+  else{ playDvrFrom(secondsAgo); }
+});
+
+cVideo.addEventListener("playing", ()=>{
+  if(dvrMode) return;
+  clearTimeout(cRetryTimer);
+  cFailCount = 0;
+  setCLive(true);
+});
+cVideo.addEventListener("error", ()=>{
+  if(dvrMode) return;
+  setCLive(false);
+  scheduleCRetry();
+});
+
+cpPlay.onclick = ()=>{ cVideo.paused ? cVideo.play() : cVideo.pause(); };
+cVideo.addEventListener("play", ()=> cpPlay.textContent = "⏸");
+cVideo.addEventListener("pause", ()=> cpPlay.textContent = "▶");
+cpMute.onclick = ()=>{
+  cVideo.muted = !cVideo.muted;
+  cpMute.textContent = cVideo.muted ? "🔇" : "🔊";
+};
+cpFullscreen.onclick = ()=>{
+  const wrap = document.getElementById("customPlayerWrap");
+  if(document.fullscreenElement){ document.exitFullscreen(); }
+  else if(wrap.requestFullscreen){ wrap.requestFullscreen(); }
+};
+cpGoLive.onclick = goLive;
+
+// ==== Качество (честно: это визуальный эффект на стороне браузера —
+// рисуем кадр на маленьком canvas и растягиваем его блоками (пиксельно).
+// Трафик при этом НЕ уменьшается — поток как был, так и качается полностью. ====
+function stopPixelate(){
+  if(pixelateRAF) cancelAnimationFrame(pixelateRAF);
+  pixelateRAF = null;
+}
+function startPixelate(scale){
+  stopPixelate();
+  function draw(){
+    if(cVideo.readyState >= 2 && cVideo.videoWidth){
+      const w = Math.max(16, Math.round(cVideo.videoWidth*scale));
+      const h = Math.max(9, Math.round(cVideo.videoHeight*scale));
+      if(cpCanvas.width !== w) cpCanvas.width = w;
+      if(cpCanvas.height !== h) cpCanvas.height = h;
+      cpCtx.imageSmoothingEnabled = false;
+      cpCtx.drawImage(cVideo, 0, 0, w, h);
+    }
+    pixelateRAF = requestAnimationFrame(draw);
+  }
+  draw();
+}
+function setQuality(q){
+  currentQuality = q;
+  if(q === "auto"){
+    cpCanvas.style.display = "none";
+    cVideo.style.display = "";
+    stopPixelate();
+  }else{
+    cVideo.style.display = "none";
+    cpCanvas.style.display = "";
+    startPixelate(q === "mid" ? 0.5 : 0.22);
+  }
+  cpQualityMenu.querySelectorAll("button").forEach(b=>{
+    const on = b.dataset.q === q;
+    b.classList.toggle("on", on);
+    if(on) cpQualityBtn.textContent = b.textContent.replace(/\s*\(.*\)$/,"") + " ▾";
+  });
+}
+cpQualityBtn.onclick = (e)=>{ e.stopPropagation(); cpQualityMenu.classList.toggle("open"); };
+document.addEventListener("click", ()=> cpQualityMenu.classList.remove("open"));
+cpQualityMenu.querySelectorAll("button").forEach(btn=>{
+  btn.onclick = (e)=>{ e.stopPropagation(); setQuality(btn.dataset.q); cpQualityMenu.classList.remove("open"); };
+});
+
+function initCustomPlayer(){
+  if(customPlayerInited) return;
+  customPlayerInited = true;
+  loadCustomLive();
+}
 
 // Видео-модалка
 document.getElementById("closeVideoModal").onclick = closeVideoModal;
