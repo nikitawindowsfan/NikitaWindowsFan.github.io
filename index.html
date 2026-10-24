@@ -167,9 +167,7 @@
   .live-badge.off .live-dot{background:var(--muted);}
   .live-dot{width:7px;height:7px;border-radius:50%;background:var(--live);}
 
-  /* Тестовый плеер (виден и переключается только администратору) */
-  .player-admin-bar{max-width:1040px;margin:0 auto 10px;display:none;}
-  .player-admin-bar .btn{margin-top:0;}
+  /* Тестовый плеер (кнопка включения — в самом низу админ-панели) */
   .player video#cVideo{
     position:absolute;inset:0;width:100%;height:100%;
     background:#000;object-fit:contain;z-index:0;
@@ -413,10 +411,6 @@
       <div>
         <h3 class="block-title">Прямой эфир</h3>
 
-        <div class="player-admin-bar" id="playerAdminBar">
-          <button class="btn secondary" id="togglePlayerBtn">🧪 Тестовый плеер: выкл</button>
-        </div>
-
         <div class="player" id="stablePlayerWrap">
           <span class="live-badge off" id="liveBadge"><span class="live-dot"></span><span id="liveText">проверяем эфир…</span></span>
           <video id="livePlayer" class="video-js vjs-big-play-centered" controls playsinline preload="auto"></video>
@@ -427,7 +421,7 @@
         </div>
 
         <!-- Тестовый плеер: свой, с качеством и перемоткой на 30 минут назад.
-             Виден и включается ТОЛЬКО тебе, после входа в админку (см. playerAdminBar выше). -->
+             Включается кнопкой в самом низу админ-панели — видно и доступно только тебе. -->
         <div class="player" id="customPlayerWrap" style="display:none;">
           <span class="live-badge off" id="cLiveBadge"><span class="live-dot"></span><span id="cLiveText">проверяем эфир…</span></span>
           <video id="cVideo" playsinline muted preload="auto"></video>
@@ -607,6 +601,10 @@
       <hr class="divider">
       <button class="btn secondary" id="logoutBtn">Выйти</button>
       <button class="btn secondary" id="forgetDeviceBtn">Скрыть шестерёнку на этом устройстве</button>
+
+      <hr class="divider">
+      <label>Тестовый плеер (видно и включается только тебе)</label>
+      <button class="btn secondary" id="togglePlayerBtn">🧪 Тестовый плеер: выкл</button>
     </div>
   </div>
 </div>
@@ -1268,7 +1266,34 @@ auth.onAuthStateChanged(user=>{
     document.getElementById("loginBox").style.display = isAdminSignedIn ? "none" : "block";
     document.getElementById("adminBox").style.display = isAdminSignedIn ? "block" : "none";
   }
+  refreshPlayerAdminUI();
 });
+
+// ==== Тестовый плеер — кнопка лежит в самом низу админ-панели, то есть
+// видна и нажимаема ТОЛЬКО после входа через Firebase Auth. Обычный посетитель
+// её вообще не видит, потому что никогда не попадает внутрь #adminBox.
+const togglePlayerBtn = document.getElementById("togglePlayerBtn");
+const stablePlayerWrap = document.getElementById("stablePlayerWrap");
+const customPlayerWrap = document.getElementById("customPlayerWrap");
+let testPlayerOn = false;
+try{ testPlayerOn = sessionStorage.getItem("nwf_testplayer") === "1"; }catch(e){}
+
+function refreshPlayerAdminUI(){
+  if(!isAdminSignedIn) testPlayerOn = false; // на всякий случай — без входа тестовый плеер не включить
+  stablePlayerWrap.style.display = testPlayerOn ? "none" : "block";
+  customPlayerWrap.style.display = testPlayerOn ? "block" : "none";
+  togglePlayerBtn.textContent = testPlayerOn
+    ? "🧪 Тестовый плеер: ВКЛ (видно только тебе)"
+    : "🧪 Тестовый плеер: выкл";
+  if(testPlayerOn) initCustomPlayer();
+}
+togglePlayerBtn.onclick = ()=>{
+  if(!isAdminSignedIn) return;
+  testPlayerOn = !testPlayerOn;
+  try{ sessionStorage.setItem("nwf_testplayer", testPlayerOn ? "1" : "0"); }catch(e){}
+  refreshPlayerAdminUI();
+};
+refreshPlayerAdminUI();
 
 function openAdminPanel(){
   overlay.classList.add("active");
