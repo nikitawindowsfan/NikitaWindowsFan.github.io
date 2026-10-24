@@ -1124,6 +1124,9 @@ const liveBadge = document.getElementById("liveBadge");
 const liveText = document.getElementById("liveText");
 let retryTimer = null;
 let failCount = 0;
+// true, пока открыт тестовый плеер: основной поток в это время не запускаем,
+// чтобы не качать эфир дважды.
+let stablePlayerSuspended = false;
 
 function setLive(on){
   offlineBox.classList.toggle("show", !on);
@@ -1131,6 +1134,7 @@ function setLive(on){
   liveText.textContent = on ? "в эфире" : "не в эфире";
 }
 function loadStream(){
+  if(stablePlayerSuspended) return; // работает тестовый плеер — основной не трогаем
   livePlayer.error(null);
   livePlayer.src({ src: STREAM_URL, type: "application/x-mpegURL" });
   const p = livePlayer.play();
@@ -1156,8 +1160,8 @@ livePlayer.on("error", ()=>{
 livePlayer.ready(loadStream);
 
 // ==== Тестовый плеер (admin-only): свой плеер, качество, перемотка на 30 мин ====
-// Эта часть не грузит и не трогает стабильный плеер выше — работает только
-// если администратор явно включил тестовый плеер кнопкой (см. ниже).
+// Подключается только если администратор явно включил его кнопкой (см. ниже).
+// Пока он работает, основной плеер ставится на паузу и не качает поток дважды.
 const cVideo = document.getElementById("cVideo");
 const cpCanvas = document.getElementById("cpCanvas");
 const cpCtx = cpCanvas.getContext("2d", { alpha:false });
@@ -1174,6 +1178,7 @@ const cpQualityBtn = document.getElementById("cpQualityBtn");
 const cpQualityMenu = document.getElementById("cpQualityMenu");
 
 let customPlayerInited = false;
+let customPlayerActive = false;
 let cHls = null;
 let cRetryTimer = null;
 let cFailCount = 0;
@@ -1293,7 +1298,7 @@ cVideo.addEventListener("playing", ()=>{
   setCLive(true);
 });
 cVideo.addEventListener("error", ()=>{
-  if(dvrMode) return;
+  if(dvrMode || !customPlayerActive) return;
   setCLive(false);
   scheduleCRetry();
 });
@@ -1360,7 +1365,32 @@ cpQualityMenu.querySelectorAll("button").forEach(btn=>{
 function initCustomPlayer(){
   if(customPlayerInited) return;
   customPlayerInited = true;
+  customPlayerActive = true;
   loadCustomLive();
+}
+function stopCustomPlayer(){
+  // Полностью останавливаем тестовый плеер: освобождаем поток и возвращаем
+  // интерфейс к исходному состоянию, чтобы при повторном включении всё
+  // подключилось заново.
+  customPlayerActive = false;
+  clearTimeout(cRetryTimer);
+  cFailCount = 0;
+  stopLiveHls();
+  stopPixelate();
+  dvrMode = false;
+  dvrChunkStart = null;
+  seekDragging = false;
+  setQuality("auto");
+  try{ cVideo.pause(); }catch(e){}
+  cVideo.removeAttribute("src");
+  try{ cVideo.load(); }catch(e){}
+  customPlayerInited = false;
+  cOfflineBox.classList.remove("show");
+  cLiveBadge.classList.add("off");
+  cLiveText.textContent = "проверяем эфир…";
+  cpGoLive.classList.remove("show");
+  cpSeek.value = cpSeek.max;
+  cpTime.textContent = "В ЭФИРЕ";
 }
 
 // Видео-модалка
@@ -1384,6 +1414,60 @@ function refreshGearVisibility(){
 refreshGearVisibility();
 
 let isAdminSignedIn = false;
+
+// ==== Тестовый плеер — кнопка лежит в самом низу админ-панели, то есть
+// видна и нажимаема ТОЛЬКО после входа через Firebase Auth. Обычный посетитель
+// её вообще не видит, потому что никогда не попадает внутрь #adminBox.
+const togglePlayerBtn = document.getElementById("togglePlayerBtn");
+const stablePlayerWrap = document.getElementById("stablePlayerWrap");
+const customPlayerWrap = document.getElementById("customPlayerWrap");
+
+// Выбранное состояние тестового плеера храним в localStorage, чтобы оно
+// переживало перезагрузку страницы и браузера.
+const TEST_PLAYER_KEY = "nwf_testplayer";
+function readTestPlayerPreference(){
+  try{ return localStorage.getItem(TEST_PLAYER_KEY) === "1"; }catch(e){ return false; }
+}
+function saveTestPlayerPreference(on){
+  try{ localStorage.setItem(TEST_PLAYER_KEY, on ? "1" : "0"); }catch(e){}
+}
+let testPlayerOn = readTestPlayerPreference();
+
+function refreshPlayerAdminUI(){
+  // isAdminSignedIn становится true только после того, как Firebase восстановит
+  // вход, поэтому сохранённую настройку здесь НЕ сбрасываем — иначе плеер
+  // «слетает» при каждой перезагрузке. Без входа он просто не показывается.
+  const showTestPlayer = isAdminSignedIn && testPlayerOn;
+  const wasShowing = customPlayerWrap.style.display === "block";
+  stablePlayerWrap.style.display = showTestPlayer ? "none" : "block";
+  customPlayerWrap.style.display = showTestPlayer ? "block" : "none";
+  togglePlayerBtn.disabled = !isAdminSignedIn;
+  togglePlayerBtn.textContent = showTestPlayer
+    ? "🧪 Тестовый плеер: ВКЛ (видно только тебе)"
+    : "🧪 Тестовый плеер: выкл";
+  if(showTestPlayer){
+    initCustomPlayer();
+    // Пока открыт тестовый плеер, основной останавливаем, чтобы не тянуть
+    // один и тот же поток дважды.
+    stablePlayerSuspended = true;
+    clearTimeout(retryTimer);
+    try{ livePlayer.pause(); }catch(e){}
+  }else{
+    if(wasShowing) stopCustomPlayer();
+    if(stablePlayerSuspended){
+      stablePlayerSuspended = false;
+      loadStream(); // заново подключаем основной плеер
+    }
+  }
+}
+togglePlayerBtn.onclick = ()=>{
+  if(!isAdminSignedIn) return;
+  testPlayerOn = !testPlayerOn;
+  saveTestPlayerPreference(testPlayerOn);
+  refreshPlayerAdminUI();
+};
+refreshPlayerAdminUI();
+
 auth.onAuthStateChanged(user=>{
   isAdminSignedIn = !!user;
   if(user){
@@ -1396,32 +1480,6 @@ auth.onAuthStateChanged(user=>{
   }
   refreshPlayerAdminUI();
 });
-
-// ==== Тестовый плеер — кнопка лежит в самом низу админ-панели, то есть
-// видна и нажимаема ТОЛЬКО после входа через Firebase Auth. Обычный посетитель
-// её вообще не видит, потому что никогда не попадает внутрь #adminBox.
-const togglePlayerBtn = document.getElementById("togglePlayerBtn");
-const stablePlayerWrap = document.getElementById("stablePlayerWrap");
-const customPlayerWrap = document.getElementById("customPlayerWrap");
-let testPlayerOn = false;
-try{ testPlayerOn = sessionStorage.getItem("nwf_testplayer") === "1"; }catch(e){}
-
-function refreshPlayerAdminUI(){
-  if(!isAdminSignedIn) testPlayerOn = false; // на всякий случай — без входа тестовый плеер не включить
-  stablePlayerWrap.style.display = testPlayerOn ? "none" : "block";
-  customPlayerWrap.style.display = testPlayerOn ? "block" : "none";
-  togglePlayerBtn.textContent = testPlayerOn
-    ? "🧪 Тестовый плеер: ВКЛ (видно только тебе)"
-    : "🧪 Тестовый плеер: выкл";
-  if(testPlayerOn) initCustomPlayer();
-}
-togglePlayerBtn.onclick = ()=>{
-  if(!isAdminSignedIn) return;
-  testPlayerOn = !testPlayerOn;
-  try{ sessionStorage.setItem("nwf_testplayer", testPlayerOn ? "1" : "0"); }catch(e){}
-  refreshPlayerAdminUI();
-};
-refreshPlayerAdminUI();
 
 function openAdminPanel(){
   overlay.classList.add("active");
