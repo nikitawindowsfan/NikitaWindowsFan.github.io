@@ -114,7 +114,10 @@
     cursor:pointer;
     font-size:13.5px;font-weight:500;
     transform:translateY(1px);
+    transition:color .18s ease,background-color .18s ease,border-color .18s ease,
+      transform .18s ease,box-shadow .18s ease;
   }
+  .tab:hover{color:var(--text);transform:translateY(-1px);}
   .tab.active{
     background:var(--panel-t);
     color:var(--text);
@@ -132,7 +135,11 @@
     min-height:420px;
   }
   .view{display:none;}
-  .view.active{display:block;}
+  .view.active{display:block;animation:view-enter .26s ease both;}
+  @keyframes view-enter{
+    from{opacity:0;transform:translateY(7px);}
+    to{opacity:1;transform:translateY(0);}
+  }
 
   /* Home: player + schedule */
   .home-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:22px;}
@@ -229,9 +236,15 @@
     color:var(--muted);font-size:12px;width:76px;flex-shrink:0;
     padding-top:3px;
   }
+  .news-body{flex:1;min-width:0;}
   .news-body h3{margin:0 0 6px;font-size:16px;font-weight:700;}
   .news-body p{margin:0;color:var(--text-soft);font-size:14px;}
   .news-empty{color:var(--muted);font-size:13.5px;}
+  .news-photo{
+    display:block;max-width:100%;max-height:380px;object-fit:contain;
+    margin-top:12px;border:1px solid var(--border);border-radius:5px;
+    background:var(--surface-deep);
+  }
 
   /* About */
   .about-text{max-width:640px;color:var(--text-soft);font-size:14.5px;white-space:pre-wrap;}
@@ -244,17 +257,25 @@
 
   /* Admin modal */
   .overlay{
-    display:none;position:fixed;inset:0;background:rgba(4,6,9,.55);
+    display:flex;position:fixed;inset:0;background:rgba(4,6,9,.55);
     -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
     align-items:center;justify-content:center;z-index:50;padding:20px;
+    opacity:0;visibility:hidden;pointer-events:none;
+    transition:opacity .2s ease,visibility 0s linear .2s;
   }
-  .overlay.active{display:flex;}
+  .overlay.active{
+    opacity:1;visibility:visible;pointer-events:auto;
+    transition:opacity .2s ease;
+  }
   .modal{
     background:var(--panel-t);border:1px solid var(--border);border-radius:8px;
     -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
     width:100%;max-width:480px;max-height:86vh;overflow:auto;
     padding:22px 22px 26px;
+    opacity:0;transform:translateY(12px) scale(.985);
+    transition:opacity .2s ease,transform .24s cubic-bezier(.2,.75,.25,1);
   }
+  .overlay.active .modal{opacity:1;transform:translateY(0) scale(1);}
   /* Размер админки: поменяй --admin-w (ширина) и --admin-h (макс. высота) под себя */
   .modal.admin-modal{
     --admin-w:760px;--admin-h:92vh;
@@ -273,7 +294,10 @@
   .btn{
     background:var(--accent-t);color:var(--accent-on-accent);border:none;border-radius:5px;
     padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:12px;
+    transition:transform .16s ease,filter .16s ease,background-color .16s ease;
   }
+  .btn:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px);}
+  .btn:disabled{cursor:wait;opacity:.6;transform:none;}
 
   /* Настройки (кастомизация) */
   .set-group{margin-bottom:18px;}
@@ -322,6 +346,8 @@
   }
   .admin-row span{color:var(--muted);}
   .err{color:#ff9090;font-size:12.5px;margin-top:8px;display:none;}
+  .admin-status{font-size:12px;color:var(--muted);margin:-8px 0 10px;min-height:1em;}
+  .admin-status.error{color:#ff9090;}
   hr.divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
 
   /* Video */
@@ -336,6 +362,44 @@
   .video-frame iframe,.video-frame video{width:100%;height:100%;display:block;border:none;}
   .video-modal{max-width:720px;}
   .video-modal .video-frame{margin-bottom:14px;}
+
+  /* Чат рядом с эфиром: сообщения читают все, отправка идёт через защищённую функцию */
+  .chat-panel{
+    margin-top:22px;border:1px solid var(--border);border-radius:6px;
+    overflow:hidden;background:var(--panel-alt-t);
+  }
+  .chat-heading{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:11px 14px;border-bottom:1px solid var(--border);
+  }
+  .chat-heading h3{margin:0;font-size:13px;color:var(--text);}
+  .chat-state{font-size:11.5px;color:var(--muted);}
+  .chat-messages{
+    height:230px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;
+    padding:12px;scroll-behavior:smooth;
+  }
+  .chat-empty{color:var(--muted);font-size:13px;text-align:center;margin:auto;}
+  .chat-message{
+    max-width:96%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;
+    background:var(--panel-t);overflow-wrap:anywhere;animation:chat-message-in .2s ease both;
+  }
+  @keyframes chat-message-in{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+  .chat-message-meta{display:flex;gap:8px;align-items:baseline;margin-bottom:2px;font-size:11px;color:var(--muted);}
+  .chat-message-name{font-weight:600;color:var(--accent);}
+  .chat-message-text{font-size:13px;line-height:1.4;white-space:pre-wrap;}
+  .chat-form{padding:11px 12px 12px;border-top:1px solid var(--border);}
+  .chat-name-row{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);}
+  .chat-panel input,.chat-panel textarea{
+    background:var(--deep-t);border:1px solid var(--border);color:var(--text);
+    border-radius:5px;padding:8px 9px;font-family:inherit;font-size:13px;
+  }
+  .chat-panel input{width:min(220px,65%);}
+  .chat-compose{display:flex;align-items:stretch;gap:8px;margin-top:8px;}
+  .chat-panel textarea{flex:1;min-width:0;min-height:42px;max-height:110px;resize:vertical;}
+  .chat-compose .btn{margin:0;white-space:nowrap;}
+  .chat-hint,.chat-status{margin:7px 0 0;font-size:11.5px;color:var(--muted);}
+  .chat-status:empty{display:none;}
+  .chat-status.error{color:#ff9090;}
 
   /* Технический перерыв (включается только из консоли) */
   .maintenance-overlay{
@@ -366,7 +430,15 @@
     main{padding:20px 16px 36px;}
     .home-grid{gap:16px;}
     .modal{padding:18px 16px 20px;}
+    .chat-heading{align-items:flex-start;flex-direction:column;gap:2px;}
+    .chat-name-row{align-items:flex-start;flex-direction:column;gap:5px;}
+    .chat-panel input{width:100%;max-width:none;}
+    .chat-compose{flex-direction:column;}
+    .chat-compose .btn{align-self:flex-end;}
     footer{padding:14px 16px 28px;font-size:11.5px;}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important;}
   }
 </style>
 <link href="https://cdn.jsdelivr.net/npm/video.js@8.16.1/dist/video-js.min.css" rel="stylesheet">
@@ -397,11 +469,11 @@
 </header>
 
 <nav class="tabs">
+  <div class="tab" data-tab="updates">Что нового</div>
   <div class="tab active" data-tab="home">Главная</div>
   <div class="tab" data-tab="news">Новости</div>
   <div class="tab" data-tab="video">Видео</div>
   <div class="tab" data-tab="about">О нас</div>
-  <div class="tab" data-tab="updates">Что нового</div>
 </nav>
 
 <main>
@@ -449,6 +521,27 @@
             <button class="cp-btn" id="cpFullscreen" title="Во весь экран">⛶</button>
           </div>
         </div>
+
+        <section class="chat-panel" aria-labelledby="chatTitle">
+          <div class="chat-heading">
+            <h3 id="chatTitle">Чат эфира</h3>
+            <span class="chat-state" id="chatConnectionStatus" aria-live="polite">Подключаем чат…</span>
+          </div>
+          <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-relevant="additions">
+            <p class="chat-empty">Загрузка сообщений…</p>
+          </div>
+          <form class="chat-form" id="chatForm">
+            <label class="chat-name-row" for="chatName">Ваше имя
+              <input id="chatName" type="text" maxlength="24" autocomplete="nickname" placeholder="Например, Гость">
+            </label>
+            <div class="chat-compose">
+              <textarea id="chatInput" maxlength="500" required placeholder="Напишите сообщение…" aria-label="Сообщение"></textarea>
+              <button class="btn" id="chatSendBtn" type="submit" disabled>Отправить</button>
+            </div>
+            <p class="chat-status" id="chatStatus" aria-live="polite"></p>
+            <p class="chat-hint">Ссылки и мат запрещены. За нарушение отправка блокируется на 10 минут; повторные нарушения — дольше.</p>
+          </form>
+        </section>
       </div>
       <div>
         <h3 class="block-title">Расписание</h3>
@@ -546,11 +639,14 @@
 
     <div id="adminBox" style="display:none;">
       <h2>Панель управления</h2>
+      <p class="admin-status" id="adminStatus" aria-live="polite"></p>
 
       <label>Заголовок новости</label>
       <input type="text" id="newsTitle" placeholder="Например: Новый выпуск вышел">
       <label>Текст новости</label>
       <textarea id="newsBody" placeholder="Краткое описание..."></textarea>
+      <label for="newsImage">Фото к новости (необязательно)</label>
+      <input type="file" id="newsImage" accept="image/png,image/jpeg,image/webp,image/gif">
       <div class="modal-row">
         <button class="btn" id="addNewsBtn">Опубликовать</button>
       </div>
@@ -563,6 +659,8 @@
       <input type="text" id="updateTitle" placeholder="Например: Обновили дизайн">
       <label>Текст обновления</label>
       <textarea id="updateBody" placeholder="Что изменилось..."></textarea>
+      <label for="updateImage">Фото к обновлению (необязательно)</label>
+      <input type="file" id="updateImage" accept="image/png,image/jpeg,image/webp,image/gif">
       <div class="modal-row">
         <button class="btn" id="addUpdateBtn">Добавить</button>
       </div>
@@ -617,6 +715,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
 <script>
 // ==== НАСТРОЙКИ АДМИНКИ ====
 // Вход через Firebase Authentication (Email/Password).
@@ -650,7 +750,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
+const storage = firebase.storage();
+const cloudFunctions = firebase.app().functions("us-central1");
 const siteRef = db.collection("public").doc("site");
+let siteDocExists = false;
+let siteSnapshotReady = false;
+let isAdminSignedIn = false;
 
 const DEFAULT_NEWS = [
   {date:"23.09.2026", title:"Сайт запущен", body:"Начинаем вести канал прямо здесь. Расписание и плеер скоро заработают по-настоящему."}
@@ -676,11 +781,36 @@ let siteData = {
   maintenance: DEFAULT_MAINTENANCE
 };
 
-function saveSite(){
-  siteRef.set(siteData);
+function showAdminStatus(message, isError=false){
+  const status = document.getElementById("adminStatus");
+  if(!status) return;
+  status.textContent = message;
+  status.classList.toggle("error", isError);
+}
+async function saveSite(){
+  if(!isAdminSignedIn){
+    showAdminStatus("Для сохранения войдите в админку.", true);
+    return false;
+  }
+  if(!siteSnapshotReady){
+    showAdminStatus("Подождите, пока загрузятся данные из Firebase.", true);
+    return false;
+  }
+  try{
+    await siteRef.set(siteData);
+    siteDocExists = true;
+    showAdminStatus("Изменения сохранены в Firebase.");
+    return true;
+  }catch(err){
+    console.error("Не удалось сохранить данные сайта в Firebase:", err);
+    showAdminStatus("Не удалось сохранить. Проверьте соединение и правила Firebase.", true);
+    return false;
+  }
 }
 
 siteRef.onSnapshot(snap=>{
+  siteSnapshotReady = true;
+  siteDocExists = snap.exists;
   if(snap.exists){
     const data = snap.data() || {};
     siteData = {
@@ -691,8 +821,8 @@ siteRef.onSnapshot(snap=>{
       updates: Array.isArray(data.updates) ? data.updates : DEFAULT_UPDATES,
       maintenance: (data.maintenance && typeof data.maintenance === "object") ? data.maintenance : DEFAULT_MAINTENANCE
     };
-  }else{
-    siteRef.set(siteData);
+  }else if(isAdminSignedIn){
+    saveSite();
   }
   renderNews();
   renderSchedule();
@@ -704,6 +834,17 @@ siteRef.onSnapshot(snap=>{
   console.error("Firestore недоступен, проверь firebaseConfig и правила доступа:", err);
 });
 
+function safeImageUrl(value){
+  try{
+    const url = new URL(String(value), location.href);
+    return url.protocol === "https:" ? url.href : "";
+  }catch(e){ return ""; }
+}
+function imageMarkup(url, alt){
+  const safeUrl = safeImageUrl(url);
+  if(!safeUrl) return "";
+  return `<img class="news-photo" src="${escapeAttr(safeUrl)}" alt="${escapeAttr(alt || "Фото")}" loading="lazy">`;
+}
 function renderNews(){
   const list = siteData.news || [];
   const el = document.getElementById("newsList");
@@ -712,20 +853,16 @@ function renderNews(){
     el.innerHTML = '<p class="news-empty">Новостей пока нет.</p>';
   }else{
     el.innerHTML = list.map(n =>
-      `<div class="news-item"><div class="news-date">${n.date}</div>
-       <div class="news-body"><h3>${escapeHtml(n.title)}</h3><p>${escapeHtml(n.body)}</p></div></div>`
+      `<div class="news-item"><div class="news-date">${escapeHtml(n.date || "")}</div>
+       <div class="news-body"><h3>${escapeHtml(n.title || "")}</h3><p>${escapeHtml(n.body || "")}</p>${imageMarkup(n.imageUrl,n.title)}</div></div>`
     ).join("");
   }
   adminEl.innerHTML = list.map((n,i) =>
-    `<div class="admin-row"><span>${n.date} — ${escapeHtml(n.title)}</span>
+    `<div class="admin-row"><span>${escapeHtml(n.date || "")} — ${escapeHtml(n.title || "")}</span>
      <button class="btn danger" data-idx="${i}">Удалить</button></div>`
   ).join("");
   adminEl.querySelectorAll("button[data-idx]").forEach(btn=>{
-    btn.onclick = ()=>{
-      const idx = parseInt(btn.dataset.idx,10);
-      siteData.news.splice(idx,1);
-      saveSite();
-    };
+    btn.onclick = ()=> removePost("news", parseInt(btn.dataset.idx,10));
   });
 }
 function renderAbout(){
@@ -822,20 +959,16 @@ function renderUpdates(){
     el.innerHTML = '<p class="news-empty">Обновлений пока нет.</p>';
   }else{
     el.innerHTML = list.map(u =>
-      `<div class="news-item"><div class="news-date">${u.date}</div>
-       <div class="news-body"><h3>${escapeHtml(u.title)}</h3><p>${escapeHtml(u.body)}</p></div></div>`
+      `<div class="news-item"><div class="news-date">${escapeHtml(u.date || "")}</div>
+       <div class="news-body"><h3>${escapeHtml(u.title || "")}</h3><p>${escapeHtml(u.body || "")}</p>${imageMarkup(u.imageUrl,u.title)}</div></div>`
     ).join("");
   }
   adminEl.innerHTML = list.map((u,i) =>
-    `<div class="admin-row"><span>${u.date} — ${escapeHtml(u.title)}</span>
+    `<div class="admin-row"><span>${escapeHtml(u.date || "")} — ${escapeHtml(u.title || "")}</span>
      <button class="btn danger" data-uidx="${i}">Удалить</button></div>`
   ).join("");
   adminEl.querySelectorAll("button[data-uidx]").forEach(btn=>{
-    btn.onclick = ()=>{
-      const idx = parseInt(btn.dataset.uidx,10);
-      siteData.updates.splice(idx,1);
-      saveSite();
-    };
+    btn.onclick = ()=> removePost("updates", parseInt(btn.dataset.uidx,10));
   });
 }
 function escapeHtml(str){
@@ -845,6 +978,182 @@ function escapeHtml(str){
 }
 function escapeAttr(str){
   return String(str).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// ==== Чат эфира: сообщения читаются из Firestore, отправка проходит через Cloud Function ====
+const chatMessagesEl = document.getElementById("chatMessages");
+const chatConnectionStatus = document.getElementById("chatConnectionStatus");
+const chatForm = document.getElementById("chatForm");
+const chatNameInput = document.getElementById("chatName");
+const chatInput = document.getElementById("chatInput");
+const chatSendBtn = document.getElementById("chatSendBtn");
+const chatStatus = document.getElementById("chatStatus");
+const sendChatCallable = cloudFunctions.httpsCallable("sendChatMessage");
+let chatUnsubscribe = null;
+
+try{ chatNameInput.value = localStorage.getItem("nwf_chat_name") || ""; }catch(e){}
+function setChatStatus(message, isError=false){
+  chatStatus.textContent = message;
+  chatStatus.classList.toggle("error", isError);
+}
+function formatChatTime(timestamp){
+  if(!timestamp || typeof timestamp.toDate !== "function") return "сейчас";
+  return timestamp.toDate().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
+}
+function renderChatSnapshot(snapshot){
+  const wasAtBottom = chatMessagesEl.scrollHeight - chatMessagesEl.scrollTop - chatMessagesEl.clientHeight < 40;
+  chatMessagesEl.replaceChildren();
+  const docs = snapshot.docs.slice().reverse();
+  if(!docs.length){
+    const empty = document.createElement("p");
+    empty.className = "chat-empty";
+    empty.textContent = "Пока сообщений нет. Напишите первым!";
+    chatMessagesEl.appendChild(empty);
+    return;
+  }
+  docs.forEach(doc=>{
+    const message = doc.data() || {};
+    const row = document.createElement("article");
+    row.className = "chat-message";
+    const meta = document.createElement("div");
+    meta.className = "chat-message-meta";
+    const name = document.createElement("span");
+    name.className = "chat-message-name";
+    name.textContent = String(message.displayName || "Гость");
+    const time = document.createElement("time");
+    time.textContent = formatChatTime(message.createdAt);
+    meta.append(name,time);
+    const body = document.createElement("div");
+    body.className = "chat-message-text";
+    body.textContent = String(message.text || "");
+    row.append(meta,body);
+    chatMessagesEl.appendChild(row);
+  });
+  if(wasAtBottom) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+function startChatListener(){
+  if(chatUnsubscribe) return;
+  chatConnectionStatus.textContent = "Подключаемся…";
+  chatUnsubscribe = db.collection("chatMessages")
+    .orderBy("createdAt","desc")
+    .limit(50)
+    .onSnapshot(snapshot=>{
+      chatConnectionStatus.textContent = "В сети · последние 50 сообщений";
+      renderChatSnapshot(snapshot);
+    },err=>{
+      console.error("Не удалось загрузить чат:",err);
+      chatConnectionStatus.textContent = "Чат временно недоступен";
+      chatMessagesEl.innerHTML = '<p class="chat-empty">Не удалось подключиться. Проверьте настройки Firebase.</p>';
+    });
+}
+function stopChatListener(){
+  if(chatUnsubscribe){ chatUnsubscribe(); chatUnsubscribe = null; }
+}
+chatNameInput.addEventListener("change",()=>{
+  try{ localStorage.setItem("nwf_chat_name",chatNameInput.value.trim().slice(0,24)); }catch(e){}
+});
+chatForm.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const text = chatInput.value.trim();
+  if(!text) return;
+  if(!auth.currentUser){
+    setChatStatus("Подключаемся к чату. Попробуйте ещё раз через секунду.",true);
+    return;
+  }
+  const displayName = chatNameInput.value.trim().slice(0,24);
+  chatSendBtn.disabled = true;
+  setChatStatus("Отправляем сообщение…");
+  try{
+    await sendChatCallable({text,displayName});
+    chatInput.value = "";
+    setChatStatus("Сообщение отправлено.");
+  }catch(err){
+    console.error("Не удалось отправить сообщение:",err);
+    const details = err && err.details ? err.details : {};
+    if(details.code === "TEMP_BANNED" && details.bannedUntil){
+      const until = new Date(Number(details.bannedUntil));
+      setChatStatus("Временная блокировка до " + until.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}) + ".",true);
+    }else if(details.code === "MESSAGE_REJECTED"){
+      setChatStatus("Сообщение не прошло проверку безопасности.",true);
+    }else if(details.code === "SLOW_DOWN"){
+      setChatStatus("Отправляйте сообщения немного реже.",true);
+    }else{
+      setChatStatus("Не удалось отправить. Проверьте подключение к чату.",true);
+    }
+  }finally{
+    chatSendBtn.disabled = !auth.currentUser;
+  }
+});
+
+// ==== Фотографии для новостей и обновлений: файлы сохраняются в Firebase Storage ====
+const MAX_SITE_IMAGE_BYTES = 8 * 1024 * 1024;
+async function uploadAdminImage(input){
+  const file = input.files && input.files[0];
+  if(!file) return null;
+  if(!isAdminSignedIn || !auth.currentUser) throw new Error("Сначала войдите в админку.");
+  const extensions = {"image/jpeg":"jpg","image/png":"png","image/webp":"webp","image/gif":"gif"};
+  if(!extensions[file.type]) throw new Error("Разрешены только JPG, PNG, WebP и GIF.");
+  if(file.size > MAX_SITE_IMAGE_BYTES) throw new Error("Размер фотографии должен быть не больше 8 МБ.");
+  const randomId = window.crypto && typeof window.crypto.randomUUID === "function"
+    ? window.crypto.randomUUID()
+    : Math.random().toString(36).slice(2) + Date.now();
+  const imagePath = `site-images/${auth.currentUser.uid}/${Date.now()}-${randomId}.${extensions[file.type]}`;
+  const imageRef = storage.ref().child(imagePath);
+  await imageRef.put(file,{contentType:file.type});
+  return {imageUrl:await imageRef.getDownloadURL(),imagePath};
+}
+async function removePost(collectionName,index){
+  const items = siteData[collectionName];
+  if(!Array.isArray(items) || !items[index]) return;
+  const removed = items.splice(index,1)[0];
+  const saved = await saveSite();
+  if(!saved){
+    items.splice(index,0,removed);
+    return;
+  }
+  if(removed.imagePath){
+    try{ await storage.ref().child(removed.imagePath).delete(); }
+    catch(err){
+      if(err.code !== "storage/object-not-found") console.warn("Запись удалена, но фото не получилось удалить из Storage:",err);
+    }
+  }
+}
+function currentDateString(){
+  const d = new Date();
+  return String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."+d.getFullYear();
+}
+async function publishPost(collectionName,titleId,bodyId,imageId,buttonId){
+  const titleInput = document.getElementById(titleId);
+  const bodyInput = document.getElementById(bodyId);
+  const imageInput = document.getElementById(imageId);
+  const button = document.getElementById(buttonId);
+  const title = titleInput.value.trim();
+  const body = bodyInput.value.trim();
+  if(!title){ showAdminStatus("Укажите заголовок публикации.",true); return; }
+  button.disabled = true;
+  showAdminStatus("Загружаем фото и сохраняем публикацию в облако…");
+  let uploadedImage = null;
+  try{
+    uploadedImage = await uploadAdminImage(imageInput);
+    const post = {date:currentDateString(),title,body};
+    if(uploadedImage) Object.assign(post,uploadedImage);
+    siteData[collectionName].unshift(post);
+    const saved = await saveSite();
+    if(!saved){
+      siteData[collectionName].shift();
+      if(uploadedImage) await storage.ref().child(uploadedImage.imagePath).delete().catch(()=>{});
+      return;
+    }
+    titleInput.value = "";
+    bodyInput.value = "";
+    imageInput.value = "";
+    showAdminStatus("Опубликовано и сохранено в облаке.");
+  }catch(err){
+    console.error("Не удалось опубликовать запись:",err);
+    showAdminStatus(err.message || "Не удалось загрузить фото или сохранить запись.",true);
+  }finally{
+    button.disabled = false;
+  }
 }
 
 // Вкладки
@@ -1250,24 +1559,11 @@ const overlay = document.getElementById("overlay");
 const gearBtn = document.getElementById("adminBtn");
 
 function refreshGearVisibility(){
-  const isMyDevice = localStorage.getItem("nwf_device") === "1";
+  let isMyDevice = false;
+  try{ isMyDevice = localStorage.getItem("nwf_device") === "1"; }catch(e){}
   gearBtn.classList.toggle("visible", isMyDevice);
 }
 refreshGearVisibility();
-
-let isAdminSignedIn = false;
-auth.onAuthStateChanged(user=>{
-  isAdminSignedIn = !!user;
-  if(user){
-    try{ localStorage.setItem("nwf_device","1"); }catch(e){}
-    refreshGearVisibility();
-  }
-  if(overlay.classList.contains("active")){
-    document.getElementById("loginBox").style.display = isAdminSignedIn ? "none" : "block";
-    document.getElementById("adminBox").style.display = isAdminSignedIn ? "block" : "none";
-  }
-  refreshPlayerAdminUI();
-});
 
 // ==== Тестовый плеер — кнопка лежит в самом низу админ-панели, то есть
 // видна и нажимаема ТОЛЬКО после входа через Firebase Auth. Обычный посетитель
@@ -1276,24 +1572,60 @@ const togglePlayerBtn = document.getElementById("togglePlayerBtn");
 const stablePlayerWrap = document.getElementById("stablePlayerWrap");
 const customPlayerWrap = document.getElementById("customPlayerWrap");
 let testPlayerOn = false;
-try{ testPlayerOn = sessionStorage.getItem("nwf_testplayer") === "1"; }catch(e){}
+function readTestPlayerPreference(){
+  try{ return localStorage.getItem("nwf_testplayer") === "1"; }
+  catch(e){ return false; }
+}
 
 function refreshPlayerAdminUI(){
-  if(!isAdminSignedIn) testPlayerOn = false; // на всякий случай — без входа тестовый плеер не включить
-  stablePlayerWrap.style.display = testPlayerOn ? "none" : "block";
-  customPlayerWrap.style.display = testPlayerOn ? "block" : "none";
-  togglePlayerBtn.textContent = testPlayerOn
+  const showTestPlayer = isAdminSignedIn && testPlayerOn;
+  stablePlayerWrap.style.display = showTestPlayer ? "none" : "block";
+  customPlayerWrap.style.display = showTestPlayer ? "block" : "none";
+  togglePlayerBtn.disabled = !isAdminSignedIn;
+  togglePlayerBtn.textContent = showTestPlayer
     ? "🧪 Тестовый плеер: ВКЛ (видно только тебе)"
     : "🧪 Тестовый плеер: выкл";
-  if(testPlayerOn) initCustomPlayer();
+  if(showTestPlayer) initCustomPlayer();
 }
 togglePlayerBtn.onclick = ()=>{
   if(!isAdminSignedIn) return;
   testPlayerOn = !testPlayerOn;
-  try{ sessionStorage.setItem("nwf_testplayer", testPlayerOn ? "1" : "0"); }catch(e){}
+  try{ localStorage.setItem("nwf_testplayer", testPlayerOn ? "1" : "0"); }catch(e){}
   refreshPlayerAdminUI();
 };
 refreshPlayerAdminUI();
+
+auth.onAuthStateChanged(user=>{
+  isAdminSignedIn = !!user && !user.isAnonymous && user.email === ADMIN_EMAIL;
+  if(isAdminSignedIn){
+    try{ localStorage.setItem("nwf_device","1"); }catch(e){}
+    refreshGearVisibility();
+    testPlayerOn = readTestPlayerPreference();
+    if(siteSnapshotReady && !siteDocExists) saveSite();
+  }else{
+    testPlayerOn = false;
+  }
+
+  if(user){
+    startChatListener();
+    chatSendBtn.disabled = false;
+  }else{
+    stopChatListener();
+    chatSendBtn.disabled = true;
+    chatConnectionStatus.textContent = "Подключаемся к чату…";
+    auth.signInAnonymously().catch(err=>{
+      console.error("Не удалось войти в чат как гость. Включите Anonymous Auth в Firebase:",err);
+      chatConnectionStatus.textContent = "Чат не настроен";
+      setChatStatus("Для чата нужно включить анонимный вход в Firebase Authentication.",true);
+    });
+  }
+
+  if(overlay.classList.contains("active")){
+    document.getElementById("loginBox").style.display = isAdminSignedIn ? "none" : "block";
+    document.getElementById("adminBox").style.display = isAdminSignedIn ? "block" : "none";
+  }
+  refreshPlayerAdminUI();
+});
 
 function openAdminPanel(){
   overlay.classList.add("active");
@@ -1353,29 +1685,8 @@ function maintenance(whenText){
 }
 window.maintenance = maintenance;
 
-document.getElementById("addNewsBtn").onclick = ()=>{
-  const title = document.getElementById("newsTitle").value.trim();
-  const body = document.getElementById("newsBody").value.trim();
-  if(!title) return;
-  const d = new Date();
-  const date = String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."+d.getFullYear();
-  siteData.news.unshift({date, title, body});
-  saveSite();
-  document.getElementById("newsTitle").value = "";
-  document.getElementById("newsBody").value = "";
-};
-
-document.getElementById("addUpdateBtn").onclick = ()=>{
-  const title = document.getElementById("updateTitle").value.trim();
-  const body = document.getElementById("updateBody").value.trim();
-  if(!title) return;
-  const d = new Date();
-  const date = String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."+d.getFullYear();
-  siteData.updates.unshift({date, title, body});
-  saveSite();
-  document.getElementById("updateTitle").value = "";
-  document.getElementById("updateBody").value = "";
-};
+document.getElementById("addNewsBtn").onclick = ()=> publishPost("news","newsTitle","newsBody","newsImage","addNewsBtn");
+document.getElementById("addUpdateBtn").onclick = ()=> publishPost("updates","updateTitle","updateBody","updateImage","addUpdateBtn");
 
 document.getElementById("addSchedBtn").onclick = ()=>{
   const time = document.getElementById("schedTime").value.trim();
