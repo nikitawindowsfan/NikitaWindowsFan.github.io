@@ -21,6 +21,7 @@
     --live:#ff5c5c;
     --surface-deep:#05070a;
     --taskbar-bg:#0a0d12;
+    --ease-smooth:cubic-bezier(.22,.61,.36,1);
   }
   body.light-theme{
     --bg:#f4f5f7;
@@ -40,6 +41,7 @@
   }
   body.light-theme header.hero img{filter:invert(1);}
   *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
   html,body{margin:0;padding:0;}
   body{
     /* --alpha — непрозрачность интерфейса (1 = полностью плотный), меняется в настройках */
@@ -132,7 +134,11 @@
     min-height:420px;
   }
   .view{display:none;}
-  .view.active{display:block;}
+  .view.active{display:block;animation:view-enter .42s var(--ease-smooth) backwards;}
+  @keyframes view-enter{
+    from{opacity:0;transform:translateY(10px);}
+    to{opacity:1;transform:translateY(0);}
+  }
 
   /* Home: player + schedule */
   .home-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:22px;}
@@ -244,17 +250,25 @@
 
   /* Admin modal */
   .overlay{
-    display:none;position:fixed;inset:0;background:rgba(4,6,9,.55);
+    display:flex;position:fixed;inset:0;background:rgba(4,6,9,.55);
     -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
     align-items:center;justify-content:center;z-index:50;padding:20px;
+    opacity:0;visibility:hidden;pointer-events:none;
+    transition:opacity .2s ease,visibility 0s linear .2s;
   }
-  .overlay.active{display:flex;}
+  .overlay.active{
+    opacity:1;visibility:visible;pointer-events:auto;
+    transition:opacity .2s ease;
+  }
   .modal{
     background:var(--panel-t);border:1px solid var(--border);border-radius:8px;
     -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
     width:100%;max-width:480px;max-height:86vh;overflow:auto;
     padding:22px 22px 26px;
+    opacity:0;transform:translateY(12px) scale(.985);
+    transition:opacity .2s ease,transform .24s cubic-bezier(.2,.75,.25,1);
   }
+  .overlay.active .modal{opacity:1;transform:translateY(0) scale(1);}
   /* Размер админки: поменяй --admin-w (ширина) и --admin-h (макс. высота) под себя */
   .modal.admin-modal{
     --admin-w:760px;--admin-h:92vh;
@@ -273,7 +287,17 @@
   .btn{
     background:var(--accent-t);color:var(--accent-on-accent);border:none;border-radius:5px;
     padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:12px;
+    transition:transform .2s var(--ease-smooth),filter .2s ease,
+      background-color .2s ease,box-shadow .25s ease;
   }
+  .btn:hover:not(:disabled){
+    filter:brightness(1.08);transform:translateY(-1px);
+    box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 28%,transparent);
+  }
+  .btn:active:not(:disabled){transform:translateY(0) scale(.98);}
+  .btn:disabled{cursor:wait;opacity:.6;transform:none;box-shadow:none;}
+  .btn.secondary:hover:not(:disabled),
+  .btn.danger:hover:not(:disabled){box-shadow:none;}
 
   /* Настройки (кастомизация) */
   .set-group{margin-bottom:18px;}
@@ -356,6 +380,87 @@
     font-variant-numeric:tabular-nums;
   }
 
+  /* ===== Плавные анимации и микро-взаимодействия ===== */
+  @keyframes fade-in{from{opacity:0;}to{opacity:1;}}
+  @keyframes rise-in{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes pop-in{from{opacity:0;transform:translateY(10px) scale(.985);}to{opacity:1;transform:translateY(0) scale(1);}}
+  @keyframes logo-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+  @keyframes live-ring{0%{transform:scale(1);opacity:.6;}80%,100%{transform:scale(2.6);opacity:0;}}
+  @keyframes menu-in{from{opacity:0;transform:translateY(4px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+
+  /* Мягкое появление оболочки страницы */
+  .taskbar{animation:fade-in .4s ease backwards;}
+  header.hero{animation:fade-in .5s ease .05s backwards;}
+  nav.tabs{animation:fade-in .5s ease .1s backwards;}
+  main{animation:fade-in .55s ease .15s backwards;}
+  footer{animation:fade-in .6s ease .3s backwards;}
+  header.hero img{animation:logo-float 8s ease-in-out 1.2s infinite;will-change:transform;}
+
+  /* Каскадное появление содержимого вкладки */
+  .view.active > .block-title{animation:rise-in .45s var(--ease-smooth) backwards;}
+  .view.active .home-grid > div{animation:rise-in .55s var(--ease-smooth) backwards;}
+  .view.active .home-grid > div:nth-child(2){animation-delay:.1s;}
+  .view.active .news-empty{animation:rise-in .5s var(--ease-smooth) backwards;}
+  .view.active .about-text,
+  .view.active .news-item{animation:rise-in .5s var(--ease-smooth) backwards;}
+  .view.active .video-card{animation:pop-in .45s var(--ease-smooth) backwards;}
+  .view.active .about-text,
+  .view.active .news-item,
+  .view.active .news-empty,
+  .view.active .video-card{animation-delay:calc(var(--i,0) * 45ms + 40ms);}
+
+  /* Вкладки и кнопки: живые, но спокойные ховеры */
+  .tab{
+    transition:color .2s ease,background-color .2s ease,border-color .2s ease,
+      transform .2s var(--ease-smooth),box-shadow .2s ease;
+  }
+  .tab:hover{color:var(--text);transform:translateY(-1px);}
+  .tab.active:hover{transform:translateY(0);}
+  .tab:active{transform:translateY(1px);}
+  .gear,.theme-toggle{
+    transition:color .2s ease,border-color .2s ease,background-color .2s ease,
+      transform .25s var(--ease-smooth);
+  }
+  .gear:hover{transform:rotate(45deg);}
+  .theme-toggle:hover{transform:translateY(-1px) scale(1.05);}
+  .cp-btn{transition:background-color .2s ease,transform .18s var(--ease-smooth);}
+  .cp-btn:hover{transform:translateY(-1px);}
+  .cp-btn:active{transform:translateY(0) scale(.96);}
+  .seg button{
+    transition:border-color .2s ease,color .2s ease,background-color .2s ease,
+      box-shadow .25s var(--ease-smooth);
+  }
+  .video-card{
+    transition:transform .25s var(--ease-smooth),border-color .2s ease,color .2s ease,
+      background-color .2s ease,box-shadow .25s ease;
+  }
+  .swatch,.swatch-custom{
+    transition:transform .2s var(--ease-smooth),border-color .2s ease,box-shadow .2s ease;
+  }
+  @media(hover:hover){
+    .video-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,.28);}
+    body.light-theme .video-card:hover{box-shadow:0 10px 24px rgba(30,45,70,.14);}
+    .swatch:hover,.swatch-custom:hover{transform:scale(1.12);}
+  }
+  .video-card:active{transform:translateY(-1px) scale(.99);}
+  .swatch:active,.swatch-custom:active{transform:scale(.96);}
+
+  /* Пульсация LIVE-индикатора и мягкое появление оверлеев */
+  .live-dot{position:relative;}
+  .live-badge:not(.off) .live-dot::after{
+    content:"";position:absolute;inset:0;border-radius:50%;
+    background:var(--live);animation:live-ring 1.8s ease-out infinite;
+  }
+  .offline.show{display:flex;animation:fade-in .25s ease backwards;}
+  .cp-quality-menu.open{display:block;animation:menu-in .18s var(--ease-smooth) backwards;transform-origin:bottom right;}
+  .maintenance-overlay.active{display:flex;animation:fade-in .3s ease backwards;}
+
+  /* Мягкая смена цветов при выборе темы/акцента: класс добавляет JS на ~0.4 с */
+  html.theme-anim,html.theme-anim *,html.theme-anim *::before,html.theme-anim *::after{
+    transition:background-color .35s ease,color .35s ease,border-color .35s ease,
+      box-shadow .35s ease,outline-color .35s ease,fill .35s ease,stroke .35s ease !important;
+  }
+
   /* Mobile */
   @media(max-width:600px){
     header.hero{padding:22px 16px 14px;gap:12px;}
@@ -367,6 +472,12 @@
     .home-grid{gap:16px;}
     .modal{padding:18px 16px 20px;}
     footer{padding:14px 16px 28px;font-size:11.5px;}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{
+      animation-duration:.01ms!important;animation-iteration-count:1!important;
+      scroll-behavior:auto!important;transition-duration:.01ms!important;
+    }
   }
 </style>
 <link href="https://cdn.jsdelivr.net/npm/video.js@8.16.1/dist/video-js.min.css" rel="stylesheet">
@@ -711,8 +822,8 @@ function renderNews(){
   if(!list.length){
     el.innerHTML = '<p class="news-empty">Новостей пока нет.</p>';
   }else{
-    el.innerHTML = list.map(n =>
-      `<div class="news-item"><div class="news-date">${n.date}</div>
+    el.innerHTML = list.map((n,i) =>
+      `<div class="news-item" style="--i:${Math.min(i,8)}"><div class="news-date">${n.date}</div>
        <div class="news-body"><h3>${escapeHtml(n.title)}</h3><p>${escapeHtml(n.body)}</p></div></div>`
     ).join("");
   }
@@ -776,7 +887,7 @@ function renderVideos(){
     el.innerHTML = '<p class="news-empty">Видео пока нет.</p>';
   }else{
     el.innerHTML = '<div class="video-grid">' + list.map((v,i) =>
-      `<div class="video-card" data-vopen="${i}">▶ ${escapeHtml(v.title)}</div>`
+      `<div class="video-card" style="--i:${Math.min(i,8)}" data-vopen="${i}">▶ ${escapeHtml(v.title)}</div>`
     ).join("") + '</div>';
     el.querySelectorAll(".video-card").forEach(card=>{
       card.onclick = ()=> openVideoModal(parseInt(card.dataset.vopen,10));
@@ -821,8 +932,8 @@ function renderUpdates(){
   if(!list.length){
     el.innerHTML = '<p class="news-empty">Обновлений пока нет.</p>';
   }else{
-    el.innerHTML = list.map(u =>
-      `<div class="news-item"><div class="news-date">${u.date}</div>
+    el.innerHTML = list.map((u,i) =>
+      `<div class="news-item" style="--i:${Math.min(i,8)}"><div class="news-date">${u.date}</div>
        <div class="news-body"><h3>${escapeHtml(u.title)}</h3><p>${escapeHtml(u.body)}</p></div></div>`
     ).join("");
   }
@@ -847,6 +958,8 @@ function escapeAttr(str){
   return String(str).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
+const reduceMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
 // Вкладки
 document.querySelectorAll(".tab").forEach(tab=>{
   tab.onclick = ()=>{
@@ -854,6 +967,10 @@ document.querySelectorAll(".tab").forEach(tab=>{
     document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
     tab.classList.add("active");
     document.getElementById("view-"+tab.dataset.tab).classList.add("active");
+    // Если пользователь ушёл вниз по длинной ленте — плавно возвращаемся к началу
+    if(window.scrollY > 120){
+      window.scrollTo({top:0,behavior:reduceMotionQuery.matches ? "auto" : "smooth"});
+    }
   };
 });
 
@@ -929,6 +1046,17 @@ function refreshSettingsUI(){
 }
 refreshSettingsUI();
 
+// Плавная смена темы/акцента/прозрачности: на время переключения включаем
+// мягкие CSS-переходы цветов, чтобы интерфейс не «щелкал» мгновенно.
+let colorAnimTimer = null;
+function animateColorChange(){
+  if(reduceMotionQuery.matches) return;
+  const root = document.documentElement;
+  root.classList.add("theme-anim");
+  clearTimeout(colorAnimTimer);
+  colorAnimTimer = setTimeout(()=>root.classList.remove("theme-anim"), 420);
+}
+
 document.getElementById("settingsBtn").onclick = ()=>{
   settingsOverlay.classList.add("active");
 };
@@ -938,31 +1066,31 @@ settingsOverlay.onclick = (e)=>{ if(e.target === settingsOverlay) settingsOverla
 themeDarkBtn.onclick = ()=>{
   savedTheme = "dark";
   try{ localStorage.setItem("nwf_theme","dark"); }catch(e){}
-  applyTheme(savedTheme); refreshSettingsUI();
+  animateColorChange(); applyTheme(savedTheme); refreshSettingsUI();
 };
 themeLightBtn.onclick = ()=>{
   savedTheme = "light";
   try{ localStorage.setItem("nwf_theme","light"); }catch(e){}
-  applyTheme(savedTheme); refreshSettingsUI();
+  animateColorChange(); applyTheme(savedTheme); refreshSettingsUI();
 };
 
 document.querySelectorAll(".swatch[data-accent]").forEach(sw=>{
   sw.onclick = ()=>{
     savedAccent = sw.dataset.accent;
     try{ localStorage.setItem("nwf_accent", savedAccent); }catch(e){}
-    applyAccent(savedAccent); refreshSettingsUI();
+    animateColorChange(); applyAccent(savedAccent); refreshSettingsUI();
   };
 });
 document.getElementById("accentCustomInput").oninput = (e)=>{
   savedAccent = e.target.value;
   try{ localStorage.setItem("nwf_accent", savedAccent); }catch(e){}
-  applyAccent(savedAccent); refreshSettingsUI();
+  animateColorChange(); applyAccent(savedAccent); refreshSettingsUI();
 };
 
 alphaRange.oninput = ()=>{
   savedAlpha = parseInt(alphaRange.value,10);
   alphaVal.textContent = savedAlpha + "%";
-  applyAlpha(savedAlpha);
+  animateColorChange(); applyAlpha(savedAlpha);
   try{ localStorage.setItem("nwf_alpha", savedAlpha); }catch(e){}
 };
 
@@ -973,7 +1101,7 @@ document.getElementById("resetAppearanceBtn").onclick = ()=>{
     localStorage.removeItem("nwf_accent");
     localStorage.removeItem("nwf_alpha");
   }catch(e){}
-  applyTheme(savedTheme); applyAccent(savedAccent); applyAlpha(savedAlpha);
+  animateColorChange(); applyTheme(savedTheme); applyAccent(savedAccent); applyAlpha(savedAlpha);
   refreshSettingsUI();
 };
 
