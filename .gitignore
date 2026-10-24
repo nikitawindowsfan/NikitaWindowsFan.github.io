@@ -1,9 +1,0 @@
-# Firebase CLI and Cloud Functions dependencies
-.firebase/
-functions/node_modules/
-functions/.runtimeconfig.json
-firebase-debug.log
-firebase-debug.*.log
-
-# Local/editor files
-.DS_Store
