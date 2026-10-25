@@ -307,9 +307,9 @@
     font-size:12px;color:var(--muted);margin:0 0 8px;
   }
   .set-label b{font-weight:500;color:var(--text-soft);font-variant-numeric:tabular-nums;}
-  .seg{display:flex;gap:6px;}
+  .seg{display:flex;gap:6px;flex-wrap:wrap;}
   .seg button{
-    flex:1;cursor:pointer;font-family:inherit;font-size:13px;
+    flex:1 1 80px;cursor:pointer;font-family:inherit;font-size:13px;
     background:var(--panel-alt-t);color:var(--text-soft);
     border:1px solid var(--border);border-radius:6px;padding:8px 10px;
   }
@@ -483,6 +483,47 @@
 <link href="https://cdn.jsdelivr.net/npm/video.js@8.16.1/dist/video-js.min.css" rel="stylesheet">
 </head>
 <body>
+<script>
+// Применяем сохранённое оформление ДО отрисовки страницы, чтобы при загрузке
+// не мелькала тёмная тема, если выбрана светлая.
+(function(){
+  function read(key){
+    try{ var v = localStorage.getItem(key); if(v !== null && v !== "") return v; }catch(e){}
+    try{
+      var m = document.cookie.match(new RegExp("(?:^|;\\s*)" + key + "=([^;]+)"));
+      return m ? decodeURIComponent(m[1]) : null;
+    }catch(e){ return null; }
+  }
+  try{
+    var theme = read("nwf_theme") || "dark";
+    if(theme === "auto"){
+      theme = (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    if(theme !== "light" && theme !== "dark") theme = "dark";
+    document.body.classList.toggle("light-theme", theme === "light");
+
+    var alpha = parseInt(read("nwf_alpha"), 10);
+    if(alpha >= 55 && alpha <= 100) document.body.style.setProperty("--alpha", (alpha/100).toFixed(2));
+
+    var accent = read("nwf_accent");
+    if(accent && /^#[0-9a-fA-F]{6}$/.test(accent)){
+      var parts = accent.replace("#","").match(/.{1,2}/g);
+      document.body.style.setProperty("--accent", accent);
+      document.body.style.setProperty("--accent-dim",
+        theme === "light"
+          ? "color-mix(in srgb, " + accent + " 28%, white)"
+          : "color-mix(in srgb, " + accent + " 38%, black)");
+      var lin = parts.map(function(v){
+        v = parseInt(v,16)/255;
+        return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4);
+      });
+      var lum = 0.2126*lin[0] + 0.7152*lin[1] + 0.0722*lin[2];
+      document.body.style.setProperty("--accent-on-accent", lum > 0.5 ? "#06111c" : "#ffffff");
+    }
+  }catch(e){}
+})();
+</script>
 
 <div class="maintenance-overlay" id="maintenanceOverlay">
   <img src="logo.png" alt="Логотип NikitaWindowsFan">
@@ -614,6 +655,7 @@
       <div class="seg">
         <button type="button" id="themeDarkBtn">🌙 Тёмная</button>
         <button type="button" id="themeLightBtn">☀️ Светлая</button>
+        <button type="button" id="themeAutoBtn" title="Как в системе — тема меняется автоматически">🖥 Система</button>
       </div>
     </div>
 
@@ -996,32 +1038,74 @@ function relativeLuminance([r,g,b]){
   });
   return 0.2126*a[0] + 0.7152*a[1] + 0.0722*a[2];
 }
+// Выбранное оформление храним в localStorage, а если он недоступен
+// (приватный режим, встроенный браузер Telegram) — дублируем в cookie.
+const THEME_KEY = "nwf_theme", ACCENT_KEY = "nwf_accent", ALPHA_KEY = "nwf_alpha";
+
+function readPreference(key){
+  try{
+    const v = localStorage.getItem(key);
+    if(v !== null && v !== "") return v;
+  }catch(e){}
+  try{
+    const m = document.cookie.match(new RegExp("(?:^|;\\s*)" + key + "=([^;]+)"));
+    return m ? decodeURIComponent(m[1]) : null;
+  }catch(e){ return null; }
+}
+function writePreference(key, value){
+  try{ localStorage.setItem(key, value); }catch(e){}
+  try{
+    const secure = location.protocol === "https:" ? ";Secure" : "";
+    document.cookie = key + "=" + encodeURIComponent(value)
+      + ";path=/;max-age=31536000;SameSite=Lax" + secure;
+  }catch(e){}
+}
+function removePreference(key){
+  try{ localStorage.removeItem(key); }catch(e){}
+  try{ document.cookie = key + "=;path=/;max-age=0;SameSite=Lax"; }catch(e){}
+}
+
+function systemPrefersLight(){
+  return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches);
+}
+// "auto" — следовать теме системы, иначе берём выбранную явно.
+function resolveTheme(theme){
+  if(theme === "auto") return systemPrefersLight() ? "light" : "dark";
+  return theme === "light" ? "light" : "dark";
+}
 function applyTheme(theme){
-  document.body.classList.toggle("light-theme", theme === "light");
+  document.body.classList.toggle("light-theme", resolveTheme(theme) === "light");
+  document.documentElement.dataset.themeMode = theme;
 }
 function applyAccent(hex){
-  const root = document.documentElement.style;
-  if(!hex){
-    root.removeProperty("--accent");
-    root.removeProperty("--accent-dim");
-    root.removeProperty("--accent-on-accent");
-    return;
-  }
-  root.setProperty("--accent", hex);
-  root.setProperty("--accent-dim", `color-mix(in srgb, ${hex} 38%, black)`);
+  // Пишем в inline-стиль <body>: правило body.light-theme{--accent:...} иначе
+  // перебивает значения, выставленные на <html>, и в светлой теме акцент
+  // всегда оставался стандартным.
+  const rootStyle = document.documentElement.style;
+  const bodyStyle = document.body.style;
+  ["--accent","--accent-dim","--accent-on-accent"].forEach(prop=>{
+    rootStyle.removeProperty(prop);
+    bodyStyle.removeProperty(prop);
+  });
+  if(!hex) return;
+  const isLight = resolveTheme(savedTheme) === "light";
+  bodyStyle.setProperty("--accent", hex);
+  bodyStyle.setProperty("--accent-dim",
+    isLight ? `color-mix(in srgb, ${hex} 28%, white)` : `color-mix(in srgb, ${hex} 38%, black)`);
   const lum = relativeLuminance(hexToRgb(hex));
-  root.setProperty("--accent-on-accent", lum > 0.5 ? "#06111c" : "#ffffff");
+  bodyStyle.setProperty("--accent-on-accent", lum > 0.5 ? "#06111c" : "#ffffff");
 }
 function applyAlpha(percent){
   document.body.style.setProperty("--alpha", (percent/100).toFixed(2));
 }
 
-let savedTheme = "dark", savedAccent = "", savedAlpha = 88;
-try{
-  savedTheme = localStorage.getItem("nwf_theme") || "dark";
-  savedAccent = localStorage.getItem("nwf_accent") || "";
-  savedAlpha = parseInt(localStorage.getItem("nwf_alpha"),10) || 88;
-}catch(e){}
+let savedTheme = readPreference(THEME_KEY) || "dark";
+let savedAccent = readPreference(ACCENT_KEY) || "";
+let savedAlpha = parseInt(readPreference(ALPHA_KEY), 10) || 88;
+if(savedTheme !== "dark" && savedTheme !== "light" && savedTheme !== "auto") savedTheme = "dark";
+if(savedAlpha < 55 || savedAlpha > 100) savedAlpha = 88;
+if(savedAccent && !/^#[0-9a-fA-F]{6}$/.test(savedAccent)) savedAccent = "";
+
 applyTheme(savedTheme);
 applyAccent(savedAccent);
 applyAlpha(savedAlpha);
@@ -1029,12 +1113,14 @@ applyAlpha(savedAlpha);
 const settingsOverlay = document.getElementById("settingsOverlay");
 const themeDarkBtn = document.getElementById("themeDarkBtn");
 const themeLightBtn = document.getElementById("themeLightBtn");
+const themeAutoBtn = document.getElementById("themeAutoBtn");
 const alphaRange = document.getElementById("alphaRange");
 const alphaVal = document.getElementById("alphaVal");
 
 function refreshSettingsUI(){
   themeDarkBtn.classList.toggle("on", savedTheme === "dark");
   themeLightBtn.classList.toggle("on", savedTheme === "light");
+  themeAutoBtn.classList.toggle("on", savedTheme === "auto");
   document.querySelectorAll(".swatch[data-accent]").forEach(sw=>{
     sw.classList.toggle("on", sw.dataset.accent === savedAccent && savedAccent !== "");
   });
@@ -1063,27 +1149,43 @@ document.getElementById("settingsBtn").onclick = ()=>{
 document.getElementById("closeSettingsModal").onclick = ()=> settingsOverlay.classList.remove("active");
 settingsOverlay.onclick = (e)=>{ if(e.target === settingsOverlay) settingsOverlay.classList.remove("active"); };
 
-themeDarkBtn.onclick = ()=>{
-  savedTheme = "dark";
-  try{ localStorage.setItem("nwf_theme","dark"); }catch(e){}
-  animateColorChange(); applyTheme(savedTheme); refreshSettingsUI();
-};
-themeLightBtn.onclick = ()=>{
-  savedTheme = "light";
-  try{ localStorage.setItem("nwf_theme","light"); }catch(e){}
-  animateColorChange(); applyTheme(savedTheme); refreshSettingsUI();
-};
+function setTheme(theme){
+  savedTheme = theme;
+  writePreference(THEME_KEY, theme);
+  animateColorChange();
+  applyTheme(savedTheme);
+  applyAccent(savedAccent); // в светлой теме акцентный оттенок другой
+  refreshSettingsUI();
+}
+themeDarkBtn.onclick = ()=> setTheme("dark");
+themeLightBtn.onclick = ()=> setTheme("light");
+themeAutoBtn.onclick = ()=> setTheme("auto");
+
+// Если выбран режим «как в системе» — переключаемся сразу, когда система
+// меняет тему (например, по расписанию вечером).
+if(window.matchMedia){
+  const themeMedia = window.matchMedia("(prefers-color-scheme: light)");
+  const onSystemThemeChange = ()=>{
+    if(savedTheme !== "auto") return;
+    animateColorChange();
+    applyTheme(savedTheme);
+    applyAccent(savedAccent);
+  };
+  if(themeMedia.addEventListener) themeMedia.addEventListener("change", onSystemThemeChange);
+  else if(themeMedia.addListener) themeMedia.addListener(onSystemThemeChange);
+}
 
 document.querySelectorAll(".swatch[data-accent]").forEach(sw=>{
   sw.onclick = ()=>{
     savedAccent = sw.dataset.accent;
-    try{ localStorage.setItem("nwf_accent", savedAccent); }catch(e){}
+    if(savedAccent) writePreference(ACCENT_KEY, savedAccent);
+    else removePreference(ACCENT_KEY);
     animateColorChange(); applyAccent(savedAccent); refreshSettingsUI();
   };
 });
 document.getElementById("accentCustomInput").oninput = (e)=>{
   savedAccent = e.target.value;
-  try{ localStorage.setItem("nwf_accent", savedAccent); }catch(e){}
+  writePreference(ACCENT_KEY, savedAccent);
   animateColorChange(); applyAccent(savedAccent); refreshSettingsUI();
 };
 
@@ -1091,16 +1193,14 @@ alphaRange.oninput = ()=>{
   savedAlpha = parseInt(alphaRange.value,10);
   alphaVal.textContent = savedAlpha + "%";
   animateColorChange(); applyAlpha(savedAlpha);
-  try{ localStorage.setItem("nwf_alpha", savedAlpha); }catch(e){}
+  writePreference(ALPHA_KEY, savedAlpha);
 };
 
 document.getElementById("resetAppearanceBtn").onclick = ()=>{
   savedTheme = "dark"; savedAccent = ""; savedAlpha = 88;
-  try{
-    localStorage.removeItem("nwf_theme");
-    localStorage.removeItem("nwf_accent");
-    localStorage.removeItem("nwf_alpha");
-  }catch(e){}
+  removePreference(THEME_KEY);
+  removePreference(ACCENT_KEY);
+  removePreference(ALPHA_KEY);
   animateColorChange(); applyTheme(savedTheme); applyAccent(savedAccent); applyAlpha(savedAlpha);
   refreshSettingsUI();
 };
@@ -1408,7 +1508,10 @@ const overlay = document.getElementById("overlay");
 const gearBtn = document.getElementById("adminBtn");
 
 function refreshGearVisibility(){
-  const isMyDevice = localStorage.getItem("nwf_device") === "1";
+  // localStorage может быть недоступен (приватный режим, встроенный браузер
+  // Telegram) — без try/catch здесь падал бы весь дальнейший скрипт.
+  let isMyDevice = false;
+  try{ isMyDevice = localStorage.getItem("nwf_device") === "1"; }catch(e){}
   gearBtn.classList.toggle("visible", isMyDevice);
 }
 refreshGearVisibility();
