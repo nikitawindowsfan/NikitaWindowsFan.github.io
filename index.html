@@ -1543,42 +1543,116 @@ const chatNameInput = document.getElementById("chatName");
 const chatInput = document.getElementById("chatInput");
 const chatSendBtn = document.getElementById("chatSendBtn");
 
-// Корни русского мата (с запасом под обфускацию символами/повторами) + пара
-// явных оскорблений. Не идеальный фильтр — ни один regex-фильтр не идеален —
-// но закрывает подавляющее большинство случаев.
+// ==== Жёсткий фильтр мата ====
+// Корни русского мата + явные оскорбления. Чтобы ловить обходы (замена букв
+// цифрами/похожими латинскими буквами, лишние символы между буквами, нулевой
+// ширины пробелы, повторы букв), текст перед сверкой с этим списком проходит
+// через normalizeForFilter() — он сводит обфусцированный текст к "чистой"
+// кириллице, и только после этого сравнивается с паттернами ниже.
 const CHAT_PROFANITY_PATTERNS = [
-  /ху([яйиюе]|ёв|лиг|лиц)/i,
+  /ху([яйиюе]|ёв|лиг|лиц|йн)/i,
   /пизд/i,
-  /(^|[^а-яa-z])еба[нл]/i, /ёб[ае]/i, /заеб/i, /вы?еб/i, /съеб/i,
+  /(^|[^а-я])еба[нл]/i, /ёб[ае]/i, /заеб/i, /вы?еб/i, /съеб/i, /отъеб/i, /наеб/i,
   /бля[дт]/i,
   /муда[кч]/i,
   /гандон/i,
   /мраз[ья]/i,
   /шлюх/i,
-  /пидор/i, /пидар/i,
-  /(^|[^а-яa-z])сук[аи]([^а-яa-z]|$)/i,
+  /пидор/i, /пидар/i, /пидр/i,
+  /(^|[^а-я])сук[аи]([^а-я]|$)/i,
   /долбо[её]б/i,
-  /идиот/i
+  /идиот/i,
+  /мудил/i,
+  /гнид/i,
+  /чмо/i,
+  /ебл[аоя]/i,
+  /скотин/i
 ];
-// Ссылка — только если это похоже на реальный адрес (протокол/www или
-// известная доменная зона), а не случайное слово с точкой внутри.
-const CHAT_LINK_RE = /(https?:\/\/|www\.)\S+|[a-zа-я0-9-]+\.(ru|com|net|org|io|tv|me|рф|su|xyz|info|biz|gg|tk|co|gov|edu|online|site|club|store|app|dev|ws|cc|top|fun|pro|live|shop|рус)(\/\S*)?/i;
 
+// Таблица похожих символов: латиница/цифры/спецсимволы, которыми часто
+// заменяют кириллицу, чтобы обойти фильтр (например "xyu" вместо "ху").
+const LOOKALIKE_MAP = {
+  "a":"а","e":"е","o":"о","p":"р","c":"с","x":"х","y":"у","k":"к","m":"м",
+  "h":"н","b":"в","t":"т","u":"и","n":"п","r":"г","3":"з","0":"о","1":"и",
+  "4":"ч","6":"б","9":"д","@":"а","$":"с","!":"и","|":"и"
+};
 function normalizeForFilter(s){
-  return s.toLowerCase()
-    .replace(/ё/g,"е")
-    .replace(/[^a-zа-я0-9 ]+/gi," ")   // "х*й", "п.и.зда" и т.п. — спецсимволы долой
+  let out = String(s).toLowerCase()
+    // невидимые/нулевой ширины символы — популярный способ "разбить" слово
+    .replace(/[​-‏﻿­]/g,"")
+    .replace(/ё/g,"е");
+  out = out.split("").map(ch => LOOKALIKE_MAP[ch] || ch).join("");
+  out = out
+    .replace(/[^a-zа-я0-9 ]+/gi," ")   // "х*й", "п.и.зда" и т.п. — спецсимволы в пробел
     .replace(/(.)\1{2,}/g,"$1$1")       // "сууукааа" → "суука"
     .replace(/\s+/g," ")
     .trim();
+  return out;
 }
 function messageHasProfanity(raw){
   const norm = normalizeForFilter(raw);
-  const squashed = norm.replace(/\s+/g,""); // ловим "х у й" через пробелы
+  const squashed = norm.replace(/[\s0-9]+/g,""); // ловим "х у й", "х1у2й" через пробелы/цифры-разделители
   return CHAT_PROFANITY_PATTERNS.some(re => re.test(norm) || re.test(squashed));
 }
+
+// ==== Фильтр ссылок ====
+// Блокируем НЕ любую ссылку, а только подозрительную: порно, похоже на скам/
+// фишинг (IP вместо домена, punycode, укорачиватели, домены с "мусорными"
+// зонами, которые массово используют для спама, или домен, маскирующийся под
+// известный бренд). Обычные безопасные ссылки (youtube, t.me, vk и т.п.)
+// проходят свободно.
+const CHAT_LINK_RE = /((https?:\/\/|www\.)[^\s]+)|([a-zа-я0-9-]+\.[a-zа-я]{2,}(\/[^\s]*)?)/gi;
+const PORN_RE = /porn|xxx|xvideo|xnxx|pornhub|redtube|youporn|hentai|onlyfans|camgirl|livejasmin|chaturbate|stripchat|erot(ic|ика)|порно|секс[^а-я]|эротик/i;
+const SUSPICIOUS_TLDS = ["xyz","top","work","click","link","gq","tk","ml","cf","bid","loan","win","review","stream","download","racing","accountant","faith","science","party","cricket","men","date","su","cam","rest","fit","quest","icu","cyou","monster","sbs","autos","makeup"];
+const URL_SHORTENERS = ["bit.ly","tinyurl.com","cutt.ly","clck.ru","is.gd","t.co","goo.gl","shorte.st","adf.ly","ow.ly","vk.cc","qps.ru","shorturl.at","rb.gy"];
+const BRAND_KEYWORDS = ["paypal","google","telegram","whatsapp","instagram","facebook","apple","microsoft","sberbank","сбербанк","тинькофф","tinkoff","vk.com","steam","valve","binance","bybit","metamask","playstation","xbox","netflix","github"];
+const OFFICIAL_BRAND_HOSTS = ["paypal.com","google.com","telegram.org","t.me","whatsapp.com","instagram.com","facebook.com","apple.com","microsoft.com","sberbank.ru","tinkoff.ru","vk.com","steampowered.com","steamcommunity.com","valvesoftware.com","binance.com","bybit.com","metamask.io","playstation.com","xbox.com","netflix.com","github.com"];
+
+function extractHost(urlLike){
+  try{
+    const withProto = /^https?:\/\//i.test(urlLike) ? urlLike : "https://" + urlLike.replace(/^www\./i,"");
+    return new URL(withProto).hostname.toLowerCase();
+  }catch(e){
+    return urlLike.split("/")[0].toLowerCase();
+  }
+}
+function isSuspiciousLink(urlLike){
+  const host = extractHost(urlLike);
+  const full = urlLike.toLowerCase();
+
+  if(PORN_RE.test(full)) return true;
+
+  // голый IP вместо домена — почти всегда подозрительно для чат-ссылки
+  if(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+
+  // punycode-домен (часто используют, чтобы визуально подделать бренд)
+  if(host.includes("xn--")) return true;
+
+  if(URL_SHORTENERS.some(s => host === s || host.endsWith("." + s))) return true;
+
+  const tld = host.split(".").pop();
+  if(SUSPICIOUS_TLDS.includes(tld)) return true;
+
+  // домен содержит имя известного бренда, но сам не является официальным
+  // доменом этого бренда — типичная схема фишинга
+  const hasBrandWord = BRAND_KEYWORDS.some(b => host.includes(b.replace(".com","").replace(".ru","")));
+  const isOfficial = OFFICIAL_BRAND_HOSTS.some(h => host === h || host.endsWith("." + h));
+  if(hasBrandWord && !isOfficial) return true;
+
+  return false;
+}
 function messageHasLink(raw){
+  CHAT_LINK_RE.lastIndex = 0;
   return CHAT_LINK_RE.test(raw);
+}
+function messageHasSuspiciousLink(raw){
+  CHAT_LINK_RE.lastIndex = 0;
+  let m;
+  while((m = CHAT_LINK_RE.exec(raw)) !== null){
+    if(isSuspiciousLink(m[0])) return true;
+    if(m.index === CHAT_LINK_RE.lastIndex) CHAT_LINK_RE.lastIndex++; // защита от зацикливания
+  }
+  return false;
 }
 
 // Счётчик нарушений и мут хранятся в localStorage этого браузера/устройства —
