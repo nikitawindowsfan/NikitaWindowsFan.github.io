@@ -237,6 +237,40 @@
   }
   .chat-input-row .btn{margin:0;padding:7px 14px;}
   .chat-input-row .btn:disabled{cursor:not-allowed;}
+  .chat-head{
+    display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+    padding:9px 12px;border-bottom:1px solid var(--border);
+    font-size:12.5px;font-weight:600;color:var(--text);
+  }
+  .chat-head-note{font-size:10.5px;font-weight:400;color:var(--muted);}
+
+  /* Новый плеер: видео слева, чат справа, расписание — под ними во всю ширину */
+  .home-grid.test-mode{
+    grid-template-columns:minmax(0,1fr) minmax(240px,32%);
+    grid-template-areas:"video chat" "sched sched";
+  }
+  .home-grid.test-mode .home-main{grid-area:video;min-width:0;}
+  .home-grid.test-mode .home-side{grid-area:sched;}
+  .home-grid.test-mode .chat-box{
+    grid-area:chat;margin-top:0;height:auto;min-height:240px;
+  }
+  @media(max-width:720px){
+    .home-grid.test-mode{
+      grid-template-columns:1fr;
+      grid-template-areas:"video" "chat" "sched";
+    }
+    .home-grid.test-mode .chat-box{height:320px;}
+  }
+  /* Полный экран нового плеера: видео слева, чат справа, без расписания */
+  .home-grid:fullscreen{
+    background:var(--surface-deep);
+    box-sizing:border-box;height:100%;padding:14px;gap:14px;
+    align-content:center;
+    grid-template-columns:minmax(0,1fr) minmax(260px,340px);
+    grid-template-areas:"video chat";
+  }
+  .home-grid:fullscreen .home-side,
+  .home-grid:fullscreen .home-main > .block-title{display:none;}
 
   h3.block-title{
     font-size:13px;text-transform:none;color:var(--muted);
@@ -584,8 +618,8 @@
 <main>
 
   <section class="view active" id="view-home">
-    <div class="home-grid">
-      <div>
+    <div class="home-grid" id="homeGrid">
+      <div class="home-main">
         <h3 class="block-title">Прямой эфир</h3>
 
         <div class="player" id="stablePlayerWrap">
@@ -627,18 +661,25 @@
           </div>
         </div>
 
-        <!-- Чат тестового плеера: мат и ссылки блокируются автоматически (см. CHAT_PROFANITY_PATTERNS / CHAT_LINK_RE) -->
-        <div class="chat-box" id="testChatWrap" style="display:none;">
-          <div class="chat-messages" id="chatMessages"><p class="chat-empty">Сообщений пока нет.</p></div>
-          <div class="chat-notice" id="chatNotice"></div>
-          <div class="chat-input-row">
-            <input type="text" id="chatName" class="chat-name-input" placeholder="Имя" maxlength="24">
-            <input type="text" id="chatInput" class="chat-text-input" placeholder="Написать в чат…" maxlength="300">
-            <button class="btn" id="chatSendBtn">➤</button>
-          </div>
+      </div>
+
+      <!-- Чат эфира: в режиме нового плеера стоит отдельной колонкой справа.
+           Мат и ссылки блокируются автоматически (CHAT_PROFANITY_PATTERNS / CHAT_LINK_RE). -->
+      <div class="chat-box" id="testChatWrap" style="display:none;">
+        <div class="chat-head">
+          <span>Чат эфира</span>
+          <span class="chat-head-note">без мата и ссылок</span>
+        </div>
+        <div class="chat-messages" id="chatMessages"><p class="chat-empty">Сообщений пока нет.</p></div>
+        <div class="chat-notice" id="chatNotice"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chatName" class="chat-name-input" placeholder="Имя" maxlength="24">
+          <input type="text" id="chatInput" class="chat-text-input" placeholder="Написать в чат…" maxlength="300">
+          <button class="btn" id="chatSendBtn">➤</button>
         </div>
       </div>
-      <div>
+
+      <div class="home-side">
         <h3 class="block-title">Расписание</h3>
         <div class="schedule" id="schedule"></div>
       </div>
@@ -1448,8 +1489,11 @@ cpMute.onclick = ()=>{
 };
 cpFullscreen.onclick = ()=>{
   const wrap = document.getElementById("customPlayerWrap");
+  const cinema = document.getElementById("homeGrid");
+  // В режиме нового плеера на весь экран показываем и чат — он стоит справа.
+  const target = (cinema && cinema.classList.contains("test-mode")) ? cinema : wrap;
   if(document.fullscreenElement){ document.exitFullscreen(); }
-  else if(wrap.requestFullscreen){ wrap.requestFullscreen(); }
+  else if(target && target.requestFullscreen){ target.requestFullscreen(); }
 };
 cpGoLive.onclick = goLive;
 
@@ -1824,6 +1868,7 @@ const togglePlayerBtn = document.getElementById("togglePlayerBtn");
 const stablePlayerWrap = document.getElementById("stablePlayerWrap");
 const customPlayerWrap = document.getElementById("customPlayerWrap");
 const testChatWrap = document.getElementById("testChatWrap");
+const homeGrid = document.getElementById("homeGrid");
 
 // Выбранное состояние тестового плеера храним в localStorage, чтобы оно
 // переживало перезагрузку страницы и браузера.
@@ -1845,6 +1890,8 @@ function refreshPlayerAdminUI(){
   stablePlayerWrap.style.display = showTestPlayer ? "none" : "block";
   customPlayerWrap.style.display = showTestPlayer ? "block" : "none";
   testChatWrap.style.display = showTestPlayer ? "flex" : "none";
+  // Раскладка «плеер + чат сбоку»; без нового плеера всё остаётся как раньше.
+  homeGrid.classList.toggle("test-mode", showTestPlayer);
   togglePlayerBtn.disabled = !isAdminSignedIn;
   togglePlayerBtn.textContent = showTestPlayer
     ? "🧪 Тестовый плеер: ВКЛ (видно только тебе)"
