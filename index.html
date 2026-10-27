@@ -218,9 +218,74 @@
   .chat-msg{font-size:13px;line-height:1.4;word-break:break-word;}
   .chat-msg .chat-name{color:var(--accent);font-weight:600;margin-right:5px;}
   .chat-msg .chat-time{color:var(--muted);font-size:10.5px;margin-left:6px;}
-  .chat-badge{font-size:11px;margin-left:3px;}
-  .chat-badge.mod{color:#7fd0ff;}
-  .chat-badge.owner,.chat-badge.verified{color:#5ad17d;}
+  /* Значки ролей. Владелец — «особенная» золотая галочка со свечением. */
+  .chat-badge{font-size:11px;margin-left:3px;display:inline-flex;align-items:center;justify-content:center;}
+  .chat-badge.mod{color:#5ad17d;font-size:10px;}
+  .chat-badge.verified{color:var(--accent);font-weight:700;}
+  .chat-badge.owner{
+    width:14px;height:14px;border-radius:50%;margin-left:4px;
+    font-size:9px;font-weight:700;color:#3a2200;
+    background:linear-gradient(135deg,#ffe9a8,#ffc247 45%,#ff9a3d);
+    box-shadow:0 0 0 1px rgba(255,214,120,.55),0 0 8px rgba(255,176,46,.45);
+    animation:owner-glow 2.8s ease-in-out infinite;
+  }
+  @keyframes owner-glow{
+    0%,100%{box-shadow:0 0 0 1px rgba(255,214,120,.5),0 0 6px rgba(255,176,46,.35);}
+    50%{box-shadow:0 0 0 1px rgba(255,214,120,.8),0 0 13px rgba(255,176,46,.7);}
+  }
+  .chat-msg .chat-name.name-owner{
+    background:linear-gradient(135deg,#ffdf8a,#ffb02e);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+  }
+  .chat-msg .chat-name.name-mod{color:#5ad17d;}
+  .chat-msg .chat-name.name-verified{color:var(--accent);}
+
+  /* Значок рядом с полем «Имя» — видно свою роль */
+  .chat-me-badge{
+    display:none;align-items:center;justify-content:center;
+    flex:0 0 auto;width:24px;height:32px;border-radius:5px;
+    font-size:13px;font-weight:700;
+    background:var(--panel-alt-t);border:1px solid var(--border);
+  }
+  .chat-me-badge.show{display:flex;}
+  .chat-me-badge.verified{background:var(--accent);color:var(--accent-on-accent);border-color:transparent;}
+  .chat-me-badge.mod{background:#2ecc71;color:#04240f;border-color:transparent;}
+  .chat-me-badge.owner{
+    background:linear-gradient(135deg,#ffe9a8,#ffc247 45%,#ff9a3d);
+    color:#3a2200;border-color:transparent;box-shadow:0 0 10px rgba(255,176,46,.45);
+  }
+  .chat-name-input[readonly]{opacity:.9;cursor:default;}
+
+  .chat-head{
+    display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+    padding:9px 12px;border-bottom:1px solid var(--border);
+    font-size:12.5px;font-weight:600;color:var(--text);
+  }
+  .chat-head-note{font-size:10.5px;font-weight:400;color:var(--muted);}
+
+  /* Новый плеер: видео слева, чат справа, расписание — под ними во всю ширину */
+  .home-grid.test-mode{
+    grid-template-columns:minmax(0,1fr) minmax(250px,32%);
+    grid-template-areas:"video chat" "sched sched";
+  }
+  .home-grid.test-mode .home-main{grid-area:video;min-width:0;}
+  .home-grid.test-mode .home-side{grid-area:sched;}
+  .home-grid.test-mode .chat-box{grid-area:chat;margin-top:0;height:auto;min-height:240px;}
+  @media(max-width:720px){
+    .home-grid.test-mode{grid-template-columns:1fr;grid-template-areas:"video" "chat" "sched";}
+    .home-grid.test-mode .chat-box{height:320px;}
+  }
+  /* Полный экран нового плеера: видео + чат */
+  .home-grid:fullscreen{
+    background:var(--surface-deep);box-sizing:border-box;height:100%;padding:14px;gap:14px;
+    align-content:center;grid-template-columns:minmax(0,1fr) minmax(260px,340px);
+    grid-template-rows:minmax(0,1fr);grid-template-areas:"video chat";
+  }
+  .home-grid:fullscreen .home-main,
+  .home-grid:fullscreen .chat-box{max-height:100%;}
+  .home-grid:fullscreen .home-side,
+  .home-grid:fullscreen .home-main > .block-title{display:none;}
   .chat-admin-tools{display:inline-flex;gap:3px;margin-left:6px;}
   .chat-role-btn{
     border:1px solid var(--border);background:transparent;border-radius:5px;
@@ -232,11 +297,11 @@
   .chat-notice.show{display:block;}
   .chat-input-row{display:flex;gap:6px;padding:8px;border-top:1px solid var(--border);flex-wrap:wrap;}
   .chat-name-input{
-    flex:0 0 92px;background:var(--deep-t);border:1px solid var(--border);
+    flex:0 1 88px;min-width:56px;background:var(--deep-t);border:1px solid var(--border);
     color:var(--text);border-radius:5px;padding:7px 8px;font-size:12.5px;font-family:inherit;
   }
   .chat-text-input{
-    flex:1 1 140px;background:var(--deep-t);border:1px solid var(--border);
+    flex:1 1 80px;min-width:70px;background:var(--deep-t);border:1px solid var(--border);
     color:var(--text);border-radius:5px;padding:7px 10px;font-size:13px;font-family:inherit;
   }
   .chat-input-row .btn{margin:0;padding:7px 14px;}
@@ -374,6 +439,19 @@
     padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;gap:10px;
   }
   .admin-row span{color:var(--muted);}
+  .admin-hint{font-size:11.5px;color:var(--muted);margin:-2px 0 8px;}
+  .role-row{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;
+    background:var(--panel-alt-t);font-size:12.5px;
+  }
+  .role-who{flex:1 1 150px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+  .role-who .role-uid{font-weight:400;color:var(--muted);font-size:10.5px;margin-left:6px;}
+  .role-actions{display:flex;gap:5px;flex-wrap:wrap;}
+  .btn.mini{padding:4px 9px;font-size:11.5px;margin:0;border-radius:6px;}
+  .btn.mini.on{border-color:var(--accent);color:var(--accent);}
+  .role-manual{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+  .role-manual input{margin:0;flex:1 1 120px;min-width:0;}
   .err{color:#ff9090;font-size:12.5px;margin-top:8px;display:none;}
   hr.divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
 
@@ -588,8 +666,8 @@
 <main>
 
   <section class="view active" id="view-home">
-    <div class="home-grid">
-      <div>
+    <div class="home-grid" id="homeGrid">
+      <div class="home-main">
         <h3 class="block-title">Прямой эфир</h3>
 
         <div class="player" id="stablePlayerWrap">
@@ -626,18 +704,26 @@
           </div>
         </div>
 
-        <!-- Чат тестового плеера: мат и ссылки блокируются автоматически (см. CHAT_PROFANITY_PATTERNS / CHAT_LINK_RE) -->
-        <div class="chat-box" id="testChatWrap" style="display:none;">
-          <div class="chat-messages" id="chatMessages"><p class="chat-empty">Сообщений пока нет.</p></div>
-          <div class="chat-notice" id="chatNotice"></div>
-          <div class="chat-input-row">
-            <input type="text" id="chatName" class="chat-name-input" placeholder="Имя" maxlength="24">
-            <input type="text" id="chatInput" class="chat-text-input" placeholder="Написать в чат…" maxlength="300">
-            <button class="btn" id="chatSendBtn">➤</button>
-          </div>
+      </div>
+
+      <!-- Чат эфира: в режиме нового плеера стоит отдельной колонкой справа.
+           Мат и ссылки блокируются автоматически (CHAT_PROFANITY_PATTERNS / CHAT_LINK_RE). -->
+      <div class="chat-box" id="testChatWrap" style="display:none;">
+        <div class="chat-head">
+          <span>Чат эфира</span>
+          <span class="chat-head-note">без мата и ссылок</span>
+        </div>
+        <div class="chat-messages" id="chatMessages"><p class="chat-empty">Сообщений пока нет.</p></div>
+        <div class="chat-notice" id="chatNotice"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chatName" class="chat-name-input" placeholder="Имя" maxlength="24">
+          <span class="chat-me-badge" id="chatMeBadge" title=""></span>
+          <input type="text" id="chatInput" class="chat-text-input" placeholder="Написать в чат…" maxlength="300">
+          <button class="btn" id="chatSendBtn">➤</button>
         </div>
       </div>
-      <div>
+
+      <div class="home-side">
         <h3 class="block-title">Расписание</h3>
         <div class="schedule" id="schedule"></div>
       </div>
@@ -787,6 +873,18 @@
       </div>
 
       <hr class="divider">
+
+      <label>Роли в чате (галочка / модератор)</label>
+      <p class="admin-hint">Кнопки «✓» и «🛡» есть и прямо у сообщений в чате. Здесь — все участники.
+        Себя понизить нельзя: у тебя всегда золотая галочка владельца.</p>
+      <div class="role-manual">
+        <input type="text" id="roleManualUid" placeholder="UID участника">
+        <input type="text" id="roleManualName" placeholder="Ник (необязательно)" maxlength="24">
+        <button class="btn mini" id="roleManualGrant" type="button">Выдать галочку</button>
+      </div>
+      <div id="adminChatRoles"></div>
+
+      <hr class="divider">
       <button class="btn secondary" id="logoutBtn">Выйти</button>
       <button class="btn secondary" id="forgetDeviceBtn">Скрыть шестерёнку на этом устройстве</button>
 
@@ -831,6 +929,15 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 const siteRef = db.collection("public").doc("site");
+let siteSnapshotReady = false;
+// Эти переменные объявлены здесь (а не ниже), потому что первый снимок Firestore
+// может прийти очень быстро — раньше, чем выполнится остальной скрипт.
+let isAdminSignedIn = false;
+let chatInited = false;
+let lastChatDocs = [];
+let chatRolesMap = {};
+let chatRolesInited = false;
+const ROLE_LABELS = { owner:"Владелец канала", mod:"Модератор", verified:"Отмечен владельцем" };
 
 const DEFAULT_NEWS = [
   {date:"23.09.2026", title:"Сайт запущен", body:"Начинаем вести канал прямо здесь. Расписание и плеер скоро заработают по-настоящему."}
@@ -848,6 +955,9 @@ const DEFAULT_UPDATES = [];
 const DEFAULT_MAINTENANCE = { active:false, when:"" };
 
 let siteData = {
+  // Резервное хранилище ролей чата: работает даже если правила Firestore
+  // не разрешают отдельную коллекцию chatRoles.
+  chatRoles: {},
   news: DEFAULT_NEWS,
   schedule: DEFAULT_SCHEDULE,
   videos: DEFAULT_VIDEOS,
@@ -869,11 +979,18 @@ siteRef.onSnapshot(snap=>{
       videos: Array.isArray(data.videos) ? data.videos : DEFAULT_VIDEOS,
       about: typeof data.about === "string" ? data.about : DEFAULT_ABOUT,
       updates: Array.isArray(data.updates) ? data.updates : DEFAULT_UPDATES,
-      maintenance: (data.maintenance && typeof data.maintenance === "object") ? data.maintenance : DEFAULT_MAINTENANCE
+      maintenance: (data.maintenance && typeof data.maintenance === "object") ? data.maintenance : DEFAULT_MAINTENANCE,
+      chatRoles: (data.chatRoles && typeof data.chatRoles === "object") ? data.chatRoles : {}
     };
   }else{
     siteRef.set(siteData);
   }
+  siteSnapshotReady = true;
+  try{
+    ensureOwnerRole();
+    applyMyChatIdentity();
+    if(chatInited) renderChatMessages(lastChatDocs);
+  }catch(e){ /* чат ещё не инициализирован — обновимся позже */ }
   renderNews();
   renderSchedule();
   renderVideos();
@@ -1363,9 +1480,13 @@ cpMute.onclick = ()=>{
   cpMute.textContent = cVideo.muted ? "🔇" : "🔊";
 };
 cpFullscreen.onclick = ()=>{
+  // В режиме нового плеера на весь экран раскрывается вся раскладка:
+  // видео слева, чат справа (см. .home-grid:fullscreen).
+  const grid = document.getElementById("homeGrid");
   const wrap = document.getElementById("customPlayerWrap");
+  const target = (grid && grid.classList.contains("test-mode")) ? grid : wrap;
   if(document.fullscreenElement){ document.exitFullscreen(); }
-  else if(wrap.requestFullscreen){ wrap.requestFullscreen(); }
+  else if(target && target.requestFullscreen){ target.requestFullscreen(); }
 };
 
 // ==== Качество (честно: это визуальный эффект на стороне браузера —
@@ -1459,8 +1580,8 @@ const OWNER_CHAT_NAME = "NikitaWindowsFan";
 // Роли участников чата (модератор / галочка), выдаются владельцем вручную,
 // хранятся в Firestore по uid собеседника (chatRoles/{uid} -> {role}).
 // Доступно на чтение всем (чтобы бейджи видели все), менять может только админ.
-let chatRolesMap = {};
-let chatRolesInited = false;
+// Сами переменные (chatRolesMap / chatRolesInited / ROLE_LABELS) объявлены выше.
+
 function watchChatRoles(){
   if(chatRolesInited) return;
   chatRolesInited = true;
@@ -1469,21 +1590,99 @@ function watchChatRoles(){
     snap.forEach(d=> map[d.id] = d.data().role);
     chatRolesMap = map;
     if(chatInited) renderChatMessages(lastChatDocs);
-  }, err=>{ console.error("Роли чата недоступны:", err); });
+    applyMyChatIdentity();
+  }, err=>{ console.error("Роли чата недоступны (используем резервное хранилище):", err); });
 }
+
+// Роль по uid. Сначала смотрим резервную копию в документе сайта, затем коллекцию.
+function roleOf(uid){
+  if(!uid) return "";
+  const local = (siteData.chatRoles || {})[uid];
+  if(local && ROLE_LABELS[local.role]) return local.role;
+  const remote = chatRolesMap[uid];
+  return ROLE_LABELS[remote] ? remote : "";
+}
+// Ник, закреплённый за ролью (чтобы его нельзя было подделать в поле «Имя»).
+function roleNameOf(uid){
+  const local = (siteData.chatRoles || {})[uid];
+  if(local && local.name) return local.name;
+  return "";
+}
+// ВАЖНО: значок привязан к uid, а не к нику. Просто вписав «NikitaWindowsFan»
+// в поле имени, галочку владельца получить нельзя.
 function badgeFor(msg){
-  if(msg.isOwner || msg.name === OWNER_CHAT_NAME) return '<span class="chat-badge owner" title="Владелец канала">✔</span>';
-  const role = chatRolesMap[msg.uid];
+  const role = roleOf(msg.uid);
+  if(role === "owner") return '<span class="chat-badge owner" title="Владелец канала">✔</span>';
   if(role === "mod") return '<span class="chat-badge mod" title="Модератор">🛡</span>';
   if(role === "verified") return '<span class="chat-badge verified" title="Отмечен владельцем">✔</span>';
   return "";
 }
 function setChatRole(uid, role){
-  if(!uid) return;
-  if(role){
-    chatRolesCollection.doc(uid).set({ role: role }).catch(err=> alert("Не получилось выдать роль: " + err.message));
+  if(!uid || !isAdminSignedIn) return;
+  if(!siteSnapshotReady) return; // данные сайта ещё не загрузились — писать нельзя
+  if(uid === getChatUid() && role !== "owner") return; // себя понизить нельзя
+  const roles = Object.assign({}, siteData.chatRoles || {});
+  if(!role){
+    delete roles[uid];
   }else{
-    chatRolesCollection.doc(uid).delete().catch(err=> alert("Не получилось снять роль: " + err.message));
+    let nick = role === "owner" ? OWNER_CHAT_NAME : (roles[uid] && roles[uid].name) || "";
+    if(!nick){
+      // берём ник из последних сообщений этого участника
+      for(let i = lastChatDocs.length - 1; i >= 0; i--){
+        const m = lastChatDocs[i].data();
+        if(m.uid === uid){ nick = m.name || ""; break; }
+      }
+    }
+    roles[uid] = { role: role, name: (nick || "Участник").slice(0,24) };
+  }
+  siteData.chatRoles = roles;
+  saveSite();
+  // Дублируем в отдельную коллекцию — если правила Firestore её разрешают,
+  // роли будут обновляться у всех в реальном времени.
+  if(role) chatRolesCollection.doc(uid).set({ role: role }).catch(()=>{});
+  else chatRolesCollection.doc(uid).delete().catch(()=>{});
+  applyMyChatIdentity();
+  if(chatInited) renderChatMessages(lastChatDocs);
+  renderChatRolesAdmin();
+}
+// Владелец: как только админ вошёл, его uid получает золотую галочку,
+// а ник в чате закрепляется как NikitaWindowsFan.
+function ensureOwnerRole(){
+  if(!isAdminSignedIn || typeof siteSnapshotReady === "undefined" || !siteSnapshotReady) return;
+  const uid = getChatUid();
+  if(!uid) return;
+  const roles = Object.assign({}, siteData.chatRoles || {});
+  const current = roles[uid];
+  if(current && current.role === "owner" && current.name === OWNER_CHAT_NAME) return;
+  roles[uid] = { role: "owner", name: OWNER_CHAT_NAME };
+  siteData.chatRoles = roles;
+  saveSite();
+  chatRolesCollection.doc(uid).set({ role: "owner" }).catch(()=>{});
+  applyMyChatIdentity();
+  renderChatMessages(lastChatDocs);
+}
+
+// Своя роль: ник в поле «Имя» и значок рядом с ним.
+function applyMyChatIdentity(){
+  const badge = document.getElementById("chatMeBadge");
+  const nameInput = document.getElementById("chatName");
+  if(!badge || !nameInput) return;
+  const uid = (typeof getChatUid === "function") ? getChatUid() : "";
+  const role = uid ? roleOf(uid) : "";
+  if(role){
+    const nick = roleNameOf(uid) || (role === "owner" ? OWNER_CHAT_NAME : "");
+    if(nick) nameInput.value = nick;
+    nameInput.readOnly = true;
+    nameInput.title = ROLE_LABELS[role] + " — ник закреплён";
+    badge.className = "chat-me-badge show " + role;
+    badge.textContent = role === "mod" ? "🛡" : "✔";
+    badge.title = ROLE_LABELS[role];
+  }else{
+    nameInput.readOnly = false;
+    nameInput.title = "";
+    badge.className = "chat-me-badge";
+    badge.textContent = "";
+    badge.title = "";
   }
 }
 const chatSendBtn = document.getElementById("chatSendBtn");
@@ -1661,9 +1860,76 @@ function refreshChatSendState(){
   if(muted) chatMuteTicker = setTimeout(refreshChatSendState, 15000);
 }
 
-let chatInited = false;
 let lastChatSentAt = 0;
-let lastChatDocs = [];
+// Список участников с ролями в админке.
+function renderChatRolesAdmin(){
+  const box = document.getElementById("adminChatRoles");
+  if(!box) return;
+  if(!isAdminSignedIn){ box.innerHTML = ""; return; }
+  const roles = siteData.chatRoles || {};
+  const myUid = getChatUid();
+  const order = { owner:0, mod:1, verified:2 };
+  const people = [];
+  const seen = {};
+  lastChatDocs.forEach(d=>{
+    const m = d.data();
+    if(!m.uid || seen[m.uid]) return;
+    seen[m.uid] = true;
+    people.push({ uid: m.uid, name: (roles[m.uid] && roles[m.uid].name) || m.name || "Гость" });
+  });
+  Object.keys(roles).forEach(uid=>{
+    if(seen[uid]) return;
+    seen[uid] = true;
+    people.push({ uid: uid, name: roles[uid].name || "Участник" });
+  });
+  people.sort((a,b)=>{
+    const ra = (roles[a.uid] && order[roles[a.uid].role]);
+    const rb = (roles[b.uid] && order[roles[b.uid].role]);
+    return (ra === undefined ? 9 : ra) - (rb === undefined ? 9 : rb);
+  });
+  if(!people.length){
+    box.innerHTML = '<p class="admin-hint">Пока никого нет: напиши в чат или вставь UID выше.</p>';
+    return;
+  }
+  box.innerHTML = people.map(p=>{
+    const role = (roles[p.uid] && roles[p.uid].role) || "";
+    const nick = role === "owner" ? OWNER_CHAT_NAME : p.name;
+    const isMe = p.uid === myUid;
+    const tag = role === "owner" ? '<span class="chat-badge owner" title="Владелец канала">✔</span>'
+              : role === "mod" ? ' <span class="chat-badge mod" title="Модератор">🛡</span>'
+              : role === "verified" ? ' <span class="chat-badge verified" title="Отмечен владельцем">✔</span>' : "";
+    const btns = (isMe || role === "owner")
+      ? `<span class="admin-hint" style="margin:0;">${isMe ? "это ты" : "закреплено"}</span>`
+      : `<span class="role-actions">
+           <button type="button" class="btn mini ${role==='verified'?'on':''}" data-uid="${escapeHtml(p.uid)}" data-role="${role==='verified'?'':'verified'}">✓ Галочка</button>
+           <button type="button" class="btn mini ${role==='mod'?'on':''}" data-uid="${escapeHtml(p.uid)}" data-role="${role==='mod'?'':'mod'}">🛡 Модератор</button>
+           ${role ? `<button type="button" class="btn mini" data-uid="${escapeHtml(p.uid)}" data-role="">Снять</button>` : ""}
+         </span>`;
+    return `<div class="role-row"><span class="role-who">${escapeHtml(nick)}${tag}<span class="role-uid">${escapeHtml(p.uid.slice(0,10))}…</span></span>${btns}</div>`;
+  }).join("");
+}
+
+// Ручная выдача галочки по UID — если участника нет в последних сообщениях.
+(function(){
+  const uidInput = document.getElementById("roleManualUid");
+  const nameInput = document.getElementById("roleManualName");
+  const grantBtn = document.getElementById("roleManualGrant");
+  if(!uidInput || !grantBtn) return;
+  grantBtn.addEventListener("click", ()=>{
+    if(!isAdminSignedIn || !siteSnapshotReady) return;
+    const uid = uidInput.value.trim();
+    if(!uid || uid === getChatUid()) return; // свою роль менять нельзя
+    const roles = Object.assign({}, siteData.chatRoles || {});
+    roles[uid] = { role: "verified", name: (nameInput.value.trim() || "Участник").slice(0,24) };
+    siteData.chatRoles = roles;
+    saveSite();
+    if(uid === getChatUid()) applyMyChatIdentity();
+    uidInput.value = ""; nameInput.value = "";
+    renderChatRolesAdmin();
+    renderChatMessages(lastChatDocs);
+  });
+})();
+
 function renderChatMessages(docs){
   lastChatDocs = docs;
   if(!docs.length){
@@ -1675,19 +1941,30 @@ function renderChatMessages(docs){
     const m = d.data();
     const time = m.ts && m.ts.toDate ? m.ts.toDate().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}) : "";
     const uid = m.uid || "";
-    const isOwnerMsg = !!(m.isOwner || m.name === OWNER_CHAT_NAME);
-    // Кнопки выдачи роли — видны только админу, и не показываются для его же сообщений.
-    const adminTools = (isAdminSignedIn && uid && !isOwnerMsg) ? `
+    const role = roleOf(uid);
+    const isOwnerMsg = role === "owner";
+    const isMine = uid && uid === getChatUid();
+    // Ник участника с ролью берём из записи роли — подделать его нельзя.
+    const shownName = roleNameOf(uid) || m.name || "Гость";
+    const nameClass = "chat-name" + (role ? " name-" + role : "");
+    // Кнопки выдачи роли — видны только админу, не на своих сообщениях и не на владельце.
+    const adminTools = (isAdminSignedIn && uid && !isMine && !isOwnerMsg) ? `
       <span class="chat-admin-tools">
-        <button type="button" class="chat-role-btn" data-uid="${escapeHtml(uid)}" data-role="${chatRolesMap[uid]==='mod' ? '' : 'mod'}" title="${chatRolesMap[uid]==='mod' ? 'Снять модератора' : 'Выдать модератора'}">🛡</button>
-        <button type="button" class="chat-role-btn" data-uid="${escapeHtml(uid)}" data-role="${chatRolesMap[uid]==='verified' ? '' : 'verified'}" title="${chatRolesMap[uid]==='verified' ? 'Снять галочку' : 'Выдать галочку'}">✔</button>
+        <button type="button" class="chat-role-btn" data-uid="${escapeHtml(uid)}" data-role="${role==='mod' ? '' : 'mod'}" title="${role==='mod' ? 'Снять модератора' : 'Выдать модератора'}">🛡</button>
+        <button type="button" class="chat-role-btn" data-uid="${escapeHtml(uid)}" data-role="${role==='verified' ? '' : 'verified'}" title="${role==='verified' ? 'Снять галочку' : 'Выдать галочку'}">✔</button>
       </span>` : "";
-    return `<div class="chat-msg"><span class="chat-name">${escapeHtml(m.name||"Гость")}${badgeFor(m)}</span>${escapeHtml(m.text||"")}<span class="chat-time">${time}</span>${adminTools}</div>`;
+    return `<div class="chat-msg"><span class="${nameClass}">${escapeHtml(shownName)}${badgeFor(m)}</span>${escapeHtml(m.text||"")}<span class="chat-time">${time}</span>${adminTools}</div>`;
   }).join("");
   if(wasAtBottom) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
 }
 chatMessagesEl.addEventListener("click", e=>{
   const btn = e.target.closest(".chat-role-btn");
+  if(!btn || !isAdminSignedIn) return;
+  setChatRole(btn.dataset.uid, btn.dataset.role || null);
+});
+// Те же действия — из админского списка ролей.
+document.addEventListener("click", e=>{
+  const btn = e.target.closest("#adminChatRoles .btn[data-uid]");
   if(!btn || !isAdminSignedIn) return;
   setChatRole(btn.dataset.uid, btn.dataset.role || null);
 });
@@ -1711,13 +1988,9 @@ function cleanupOldChatMessages(){
   }).catch(err=> console.error("Не получилось очистить старые сообщения чата:", err));
 }
 function initTestChat(){
-  try{
-    if(isAdminSignedIn && !localStorage.getItem(CHAT_NAME_KEY)){
-      chatNameInput.value = OWNER_CHAT_NAME;
-    }else{
-      chatNameInput.value = localStorage.getItem(CHAT_NAME_KEY) || (isAdminSignedIn ? OWNER_CHAT_NAME : "");
-    }
-  }catch(e){}
+  try{ chatNameInput.value = localStorage.getItem(CHAT_NAME_KEY) || ""; }catch(e){}
+  ensureOwnerRole();
+  applyMyChatIdentity();
   watchChatRoles();
   cleanupOldChatMessages();
   clearInterval(chatCleanupTimer);
@@ -1735,6 +2008,7 @@ function initTestChat(){
     });
     docs.reverse();
     renderChatMessages(docs);
+    renderChatRolesAdmin();
   }, err=>{
     console.error("Чат недоступен — проверь Firestore Rules для коллекции chat:", err);
     showChatNotice("Чат временно недоступен.");
@@ -1747,7 +2021,11 @@ function sendChatMessage(){
     showChatNotice("Ты в муте ещё " + formatMuteLeft() + " — подожди.");
     return;
   }
-  const name = (chatNameInput.value.trim() || "Гость").slice(0,24);
+  // Если у пользователя есть роль, ник берём из записи роли — подделать нельзя.
+  const myUid = getChatUid();
+  const myRole = roleOf(myUid);
+  const fixedName = myRole ? (roleNameOf(myUid) || (myRole === "owner" ? OWNER_CHAT_NAME : "")) : "";
+  const name = (fixedName || chatNameInput.value.trim() || "Гость").slice(0,24);
   if(messageHasProfanity(name)){
     const v = addChatViolation();
     showChatNotice("Ник содержит мат — смени ник. Мут на " + v.muteMinutes + " мин (нарушение " + v.n + ").");
@@ -1816,7 +2094,6 @@ function refreshGearVisibility(){
 }
 refreshGearVisibility();
 
-let isAdminSignedIn = false;
 
 // ==== Тестовый плеер — кнопка лежит в самом низу админ-панели, то есть
 // видна и нажимаема ТОЛЬКО после входа через Firebase Auth. Обычный посетитель
@@ -1825,6 +2102,7 @@ const togglePlayerBtn = document.getElementById("togglePlayerBtn");
 const stablePlayerWrap = document.getElementById("stablePlayerWrap");
 const customPlayerWrap = document.getElementById("customPlayerWrap");
 const testChatWrap = document.getElementById("testChatWrap");
+const homeGrid = document.getElementById("homeGrid");
 
 // Выбранное состояние тестового плеера храним в localStorage, чтобы оно
 // переживало перезагрузку страницы и браузера.
@@ -1846,6 +2124,8 @@ function refreshPlayerAdminUI(){
   stablePlayerWrap.style.display = showTestPlayer ? "none" : "block";
   customPlayerWrap.style.display = showTestPlayer ? "block" : "none";
   testChatWrap.style.display = showTestPlayer ? "flex" : "none";
+  // Раскладка «плеер + чат сбоку»; без нового плеера всё остаётся как раньше.
+  if(homeGrid) homeGrid.classList.toggle("test-mode", showTestPlayer);
   togglePlayerBtn.disabled = !isAdminSignedIn;
   togglePlayerBtn.textContent = showTestPlayer
     ? "🧪 Тестовый плеер: ВКЛ (видно только тебе)"
@@ -1885,6 +2165,11 @@ auth.onAuthStateChanged(user=>{
     document.getElementById("adminBox").style.display = isAdminSignedIn ? "block" : "none";
   }
   refreshPlayerAdminUI();
+  // Владелец получает золотую галочку сразу после входа.
+  ensureOwnerRole();
+  applyMyChatIdentity();
+  if(chatInited) renderChatMessages(lastChatDocs);
+  renderChatRolesAdmin();
 });
 
 function openAdminPanel(){
