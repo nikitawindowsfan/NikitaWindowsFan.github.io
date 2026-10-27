@@ -194,11 +194,6 @@
     font-family:inherit;
   }
   .cp-btn:hover{background:rgba(255,255,255,.2);}
-  .cp-btn.cp-live{display:none;border-color:var(--live);color:#ffb3b3;font-weight:700;}
-  .cp-btn.cp-live.show{display:inline-flex;}
-  .cp-seek-wrap{flex:1 1 120px;display:flex;align-items:center;min-width:100px;}
-  .cp-seek-wrap input[type=range]{width:100%;accent-color:var(--accent);}
-  .cp-time{font-size:11px;color:#e4e8ed;font-variant-numeric:tabular-nums;white-space:nowrap;}
   .cp-quality-wrap{position:relative;}
   .cp-quality-menu{
     display:none;position:absolute;bottom:36px;right:0;z-index:8;
@@ -237,40 +232,6 @@
   }
   .chat-input-row .btn{margin:0;padding:7px 14px;}
   .chat-input-row .btn:disabled{cursor:not-allowed;}
-  .chat-head{
-    display:flex;align-items:baseline;justify-content:space-between;gap:8px;
-    padding:9px 12px;border-bottom:1px solid var(--border);
-    font-size:12.5px;font-weight:600;color:var(--text);
-  }
-  .chat-head-note{font-size:10.5px;font-weight:400;color:var(--muted);}
-
-  /* Новый плеер: видео слева, чат справа, расписание — под ними во всю ширину */
-  .home-grid.test-mode{
-    grid-template-columns:minmax(0,1fr) minmax(240px,32%);
-    grid-template-areas:"video chat" "sched sched";
-  }
-  .home-grid.test-mode .home-main{grid-area:video;min-width:0;}
-  .home-grid.test-mode .home-side{grid-area:sched;}
-  .home-grid.test-mode .chat-box{
-    grid-area:chat;margin-top:0;height:auto;min-height:240px;
-  }
-  @media(max-width:720px){
-    .home-grid.test-mode{
-      grid-template-columns:1fr;
-      grid-template-areas:"video" "chat" "sched";
-    }
-    .home-grid.test-mode .chat-box{height:320px;}
-  }
-  /* Полный экран нового плеера: видео слева, чат справа, без расписания */
-  .home-grid:fullscreen{
-    background:var(--surface-deep);
-    box-sizing:border-box;height:100%;padding:14px;gap:14px;
-    align-content:center;
-    grid-template-columns:minmax(0,1fr) minmax(260px,340px);
-    grid-template-areas:"video chat";
-  }
-  .home-grid:fullscreen .home-side,
-  .home-grid:fullscreen .home-main > .block-title{display:none;}
 
   h3.block-title{
     font-size:13px;text-transform:none;color:var(--muted);
@@ -618,8 +579,8 @@
 <main>
 
   <section class="view active" id="view-home">
-    <div class="home-grid" id="homeGrid">
-      <div class="home-main">
+    <div class="home-grid">
+      <div>
         <h3 class="block-title">Прямой эфир</h3>
 
         <div class="player" id="stablePlayerWrap">
@@ -631,7 +592,7 @@
           </div>
         </div>
 
-        <!-- Тестовый плеер: свой, с качеством и перемоткой на 30 минут назад.
+        <!-- Тестовый плеер: свой, с переключением качества (визуальным).
              Включается кнопкой в самом низу админ-панели — видно и доступно только тебе. -->
         <div class="player" id="customPlayerWrap" style="display:none;">
           <span class="live-badge off" id="cLiveBadge"><span class="live-dot"></span><span id="cLiveText">проверяем эфир…</span></span>
@@ -644,11 +605,6 @@
           <div class="cp-controls">
             <button class="cp-btn" id="cpPlay" title="Пауза/Плей">⏸</button>
             <button class="cp-btn" id="cpMute" title="Звук">🔇</button>
-            <div class="cp-seek-wrap">
-              <input type="range" id="cpSeek" min="0" max="1800" value="1800" step="1" title="Перемотка (до 30 минут назад)">
-            </div>
-            <span class="cp-time" id="cpTime">В ЭФИРЕ</span>
-            <button class="cp-btn cp-live" id="cpGoLive" title="Вернуться к прямому эфиру">● LIVE</button>
             <div class="cp-quality-wrap">
               <button class="cp-btn" id="cpQualityBtn">Авто ▾</button>
               <div class="cp-quality-menu" id="cpQualityMenu">
@@ -661,25 +617,18 @@
           </div>
         </div>
 
-      </div>
-
-      <!-- Чат эфира: в режиме нового плеера стоит отдельной колонкой справа.
-           Мат и ссылки блокируются автоматически (CHAT_PROFANITY_PATTERNS / CHAT_LINK_RE). -->
-      <div class="chat-box" id="testChatWrap" style="display:none;">
-        <div class="chat-head">
-          <span>Чат эфира</span>
-          <span class="chat-head-note">без мата и ссылок</span>
-        </div>
-        <div class="chat-messages" id="chatMessages"><p class="chat-empty">Сообщений пока нет.</p></div>
-        <div class="chat-notice" id="chatNotice"></div>
-        <div class="chat-input-row">
-          <input type="text" id="chatName" class="chat-name-input" placeholder="Имя" maxlength="24">
-          <input type="text" id="chatInput" class="chat-text-input" placeholder="Написать в чат…" maxlength="300">
-          <button class="btn" id="chatSendBtn">➤</button>
+        <!-- Чат тестового плеера: мат и ссылки блокируются автоматически (см. CHAT_PROFANITY_PATTERNS / CHAT_LINK_RE) -->
+        <div class="chat-box" id="testChatWrap" style="display:none;">
+          <div class="chat-messages" id="chatMessages"><p class="chat-empty">Сообщений пока нет.</p></div>
+          <div class="chat-notice" id="chatNotice"></div>
+          <div class="chat-input-row">
+            <input type="text" id="chatName" class="chat-name-input" placeholder="Имя" maxlength="24">
+            <input type="text" id="chatInput" class="chat-text-input" placeholder="Написать в чат…" maxlength="300">
+            <button class="btn" id="chatSendBtn">➤</button>
+          </div>
         </div>
       </div>
-
-      <div class="home-side">
+      <div>
         <h3 class="block-title">Расписание</h3>
         <div class="schedule" id="schedule"></div>
       </div>
@@ -858,14 +807,6 @@ const ADMIN_EMAIL = "nikita@nikitawindowsfan.local"; // замени на реа
 // ==== ПРЯМОЙ ЭФИР (HLS) ====
 // Для GitHub Pages (https) ссылка тоже должна быть https, иначе браузер заблокирует поток.
 const STREAM_URL = "https://testilve.duckdns.org/live/NikitaWindowsFan/index.m3u8";
-
-// ==== ТЕСТОВЫЙ ПЛЕЕР: перемотка назад (DVR) ====
-// Запросы идут в Playback API MediaMTX через Caddy (см. Caddyfile, путь /playback/*).
-// Запись на диске хранится recordDeleteAfter в mediamtx.yml (сейчас 35 минут, с запасом).
-const PLAYBACK_BASE = "https://testilve.duckdns.org/playback";
-const DVR_PATH = "live/NikitaWindowsFan";
-const DVR_WINDOW_SECONDS = 1800; // окно перемотки — 30 минут
-const DVR_CHUNK_SECONDS = 600;   // запрашиваем запись кусками по 10 минут
 
 // ==== FIREBASE (общее хранилище для всех посетителей) ====
 // Вставь сюда конфиг своего проекта из консоли Firebase (Project settings → General → Your apps)
@@ -1347,9 +1288,6 @@ const cLiveBadge = document.getElementById("cLiveBadge");
 const cLiveText = document.getElementById("cLiveText");
 const cpPlay = document.getElementById("cpPlay");
 const cpMute = document.getElementById("cpMute");
-const cpSeek = document.getElementById("cpSeek");
-const cpTime = document.getElementById("cpTime");
-const cpGoLive = document.getElementById("cpGoLive");
 const cpFullscreen = document.getElementById("cpFullscreen");
 const cpQualityBtn = document.getElementById("cpQualityBtn");
 const cpQualityMenu = document.getElementById("cpQualityMenu");
@@ -1359,33 +1297,19 @@ let customPlayerActive = false;
 let cHls = null;
 let cRetryTimer = null;
 let cFailCount = 0;
-let dvrMode = false;
-let dvrChunkStart = null;   // Date — с какого момента начинается текущий кусок записи
-let seekDragging = false;
 let pixelateRAF = null;
 let currentQuality = "auto";
 
 function setCLive(on){
   cOfflineBox.classList.toggle("show", !on);
   cLiveBadge.classList.toggle("off", !on);
-  if(!dvrMode) cLiveText.textContent = on ? "в эфире" : "не в эфире";
-}
-function formatMMSS(totalSeconds){
-  totalSeconds = Math.max(0, Math.round(totalSeconds));
-  const m = Math.floor(totalSeconds/60);
-  const s = totalSeconds%60;
-  return (m<10?"0":"")+m+":"+(s<10?"0":"")+s;
-}
-function isoNoMillis(d){
-  return d.toISOString().replace(/\.\d+Z$/, "Z");
+  cLiveText.textContent = on ? "в эфире" : "не в эфире";
 }
 
 function stopLiveHls(){
   if(cHls){ try{ cHls.destroy(); }catch(e){} cHls = null; }
 }
 function loadCustomLive(){
-  dvrMode = false;
-  cpGoLive.classList.remove("show");
   stopLiveHls();
   cVideo.removeAttribute("src");
   if(window.Hls && Hls.isSupported()){
@@ -1411,71 +1335,13 @@ function scheduleCRetry(){
   cRetryTimer = setTimeout(loadCustomLive, delay);
 }
 
-function dvrChunkUrl(start){
-  return PLAYBACK_BASE + "/get?path=" + encodeURIComponent(DVR_PATH)
-    + "&start=" + encodeURIComponent(isoNoMillis(start))
-    + "&duration=" + DVR_CHUNK_SECONDS;
-}
-function playDvrFrom(secondsAgo){
-  dvrMode = true;
-  clearTimeout(cRetryTimer);
-  stopLiveHls();
-  const start = new Date(Date.now() - secondsAgo*1000);
-  dvrChunkStart = start;
-  cVideo.src = dvrChunkUrl(start);
-  cVideo.muted = false;
-  const p = cVideo.play();
-  if(p && p.catch) p.catch(()=>{});
-  cLiveText.textContent = "запись · " + start.toLocaleTimeString("ru-RU");
-  cLiveBadge.classList.add("off");
-  cOfflineBox.classList.remove("show");
-  cpGoLive.classList.add("show");
-}
-function goLive(){
-  if(!seekDragging) cpSeek.value = cpSeek.max;
-  loadCustomLive();
-}
-cVideo.addEventListener("ended", ()=>{
-  if(!dvrMode) return;
-  const next = new Date(dvrChunkStart.getTime() + DVR_CHUNK_SECONDS*1000);
-  if(Date.now() - next.getTime() < 5000){
-    goLive();
-  }else{
-    dvrChunkStart = next;
-    cVideo.src = dvrChunkUrl(next);
-    const p = cVideo.play();
-    if(p && p.catch) p.catch(()=>{});
-  }
-});
-cVideo.addEventListener("timeupdate", ()=>{
-  if(!dvrMode || seekDragging || !dvrChunkStart) return;
-  const playedAt = dvrChunkStart.getTime() + cVideo.currentTime*1000;
-  const secondsAgo = (Date.now() - playedAt)/1000;
-  const sliderVal = Math.min(DVR_WINDOW_SECONDS, Math.max(0, DVR_WINDOW_SECONDS - secondsAgo));
-  cpSeek.value = sliderVal;
-  cpTime.textContent = "−" + formatMMSS(secondsAgo);
-});
-
-cpSeek.addEventListener("input", ()=>{
-  seekDragging = true;
-  const secondsAgo = DVR_WINDOW_SECONDS - parseInt(cpSeek.value,10);
-  cpTime.textContent = secondsAgo < 5 ? "В ЭФИРЕ" : "−" + formatMMSS(secondsAgo);
-});
-cpSeek.addEventListener("change", ()=>{
-  seekDragging = false;
-  const secondsAgo = DVR_WINDOW_SECONDS - parseInt(cpSeek.value,10);
-  if(secondsAgo < 5){ goLive(); }
-  else{ playDvrFrom(secondsAgo); }
-});
-
 cVideo.addEventListener("playing", ()=>{
-  if(dvrMode) return;
   clearTimeout(cRetryTimer);
   cFailCount = 0;
   setCLive(true);
 });
 cVideo.addEventListener("error", ()=>{
-  if(dvrMode || !customPlayerActive) return;
+  if(!customPlayerActive) return;
   setCLive(false);
   scheduleCRetry();
 });
@@ -1489,13 +1355,9 @@ cpMute.onclick = ()=>{
 };
 cpFullscreen.onclick = ()=>{
   const wrap = document.getElementById("customPlayerWrap");
-  const cinema = document.getElementById("homeGrid");
-  // В режиме нового плеера на весь экран показываем и чат — он стоит справа.
-  const target = (cinema && cinema.classList.contains("test-mode")) ? cinema : wrap;
   if(document.fullscreenElement){ document.exitFullscreen(); }
-  else if(target && target.requestFullscreen){ target.requestFullscreen(); }
+  else if(wrap.requestFullscreen){ wrap.requestFullscreen(); }
 };
-cpGoLive.onclick = goLive;
 
 // ==== Качество (честно: это визуальный эффект на стороне браузера —
 // рисуем кадр на маленьком canvas и растягиваем его блоками (пиксельно).
@@ -1557,9 +1419,6 @@ function stopCustomPlayer(){
   cFailCount = 0;
   stopLiveHls();
   stopPixelate();
-  dvrMode = false;
-  dvrChunkStart = null;
-  seekDragging = false;
   setQuality("auto");
   try{ cVideo.pause(); }catch(e){}
   cVideo.removeAttribute("src");
@@ -1568,9 +1427,6 @@ function stopCustomPlayer(){
   cOfflineBox.classList.remove("show");
   cLiveBadge.classList.add("off");
   cLiveText.textContent = "проверяем эфир…";
-  cpGoLive.classList.remove("show");
-  cpSeek.value = cpSeek.max;
-  cpTime.textContent = "В ЭФИРЕ";
 }
 
 // ==== Чат тестового плеера ====
@@ -1797,9 +1653,16 @@ function sendChatMessage(){
     showChatNotice("Ты в муте ещё " + formatMuteLeft() + " — подожди.");
     return;
   }
-  if(messageHasLink(text)){
+  const name = (chatNameInput.value.trim() || "Гость").slice(0,24);
+  if(messageHasProfanity(name)){
     const v = addChatViolation();
-    showChatNotice("Ссылки в чате запрещены. Мут на " + v.muteMinutes + " мин (нарушение " + v.n + ").");
+    showChatNotice("Ник содержит мат — смени ник. Мут на " + v.muteMinutes + " мин (нарушение " + v.n + ").");
+    refreshChatSendState();
+    return;
+  }
+  if(messageHasSuspiciousLink(text)){
+    const v = addChatViolation();
+    showChatNotice("Подозрительная ссылка запрещена. Мут на " + v.muteMinutes + " мин (нарушение " + v.n + ").");
     refreshChatSendState();
     return;
   }
@@ -1814,7 +1677,6 @@ function sendChatMessage(){
     showChatNotice("Не так быстро — подожди секунду.");
     return;
   }
-  const name = (chatNameInput.value.trim() || "Гость").slice(0,24);
   try{ localStorage.setItem(CHAT_NAME_KEY, name); }catch(e){}
   chatSendBtn.disabled = true;
   chatCollection.add({
@@ -1868,7 +1730,6 @@ const togglePlayerBtn = document.getElementById("togglePlayerBtn");
 const stablePlayerWrap = document.getElementById("stablePlayerWrap");
 const customPlayerWrap = document.getElementById("customPlayerWrap");
 const testChatWrap = document.getElementById("testChatWrap");
-const homeGrid = document.getElementById("homeGrid");
 
 // Выбранное состояние тестового плеера храним в localStorage, чтобы оно
 // переживало перезагрузку страницы и браузера.
@@ -1890,8 +1751,6 @@ function refreshPlayerAdminUI(){
   stablePlayerWrap.style.display = showTestPlayer ? "none" : "block";
   customPlayerWrap.style.display = showTestPlayer ? "block" : "none";
   testChatWrap.style.display = showTestPlayer ? "flex" : "none";
-  // Раскладка «плеер + чат сбоку»; без нового плеера всё остаётся как раньше.
-  homeGrid.classList.toggle("test-mode", showTestPlayer);
   togglePlayerBtn.disabled = !isAdminSignedIn;
   togglePlayerBtn.textContent = showTestPlayer
     ? "🧪 Тестовый плеер: ВКЛ (видно только тебе)"
