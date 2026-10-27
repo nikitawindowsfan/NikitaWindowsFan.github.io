@@ -218,6 +218,15 @@
   .chat-msg{font-size:13px;line-height:1.4;word-break:break-word;}
   .chat-msg .chat-name{color:var(--accent);font-weight:600;margin-right:5px;}
   .chat-msg .chat-time{color:var(--muted);font-size:10.5px;margin-left:6px;}
+  .chat-badge{font-size:11px;margin-left:3px;}
+  .chat-badge.mod{color:#7fd0ff;}
+  .chat-badge.owner,.chat-badge.verified{color:#5ad17d;}
+  .chat-admin-tools{display:inline-flex;gap:3px;margin-left:6px;}
+  .chat-role-btn{
+    border:1px solid var(--border);background:transparent;border-radius:5px;
+    font-size:10.5px;line-height:1;padding:2px 4px;cursor:pointer;color:var(--muted);
+  }
+  .chat-role-btn:hover{color:var(--text);border-color:var(--accent);}
   .chat-empty{color:var(--muted);font-size:12.5px;text-align:center;margin:auto;}
   .chat-notice{padding:0 12px 8px;font-size:12px;color:#ff9090;display:none;}
   .chat-notice.show{display:block;}
@@ -1427,6 +1436,7 @@ function stopCustomPlayer(){
   cOfflineBox.classList.remove("show");
   cLiveBadge.classList.add("off");
   cLiveText.textContent = "проверяем эфир…";
+  clearInterval(chatCleanupTimer);
 }
 
 // ==== Чат тестового плеера ====
@@ -1437,10 +1447,45 @@ function stopCustomPlayer(){
 // это понятное ограничение: умышленно обойти её может тот, кто откроет консоль
 // и напишет в Firestore напрямую. Для фан-сайта такого уровня достаточно.
 const chatCollection = db.collection("chat");
+const chatRolesCollection = db.collection("chatRoles");
 const chatMessagesEl = document.getElementById("chatMessages");
 const chatNoticeEl = document.getElementById("chatNotice");
 const chatNameInput = document.getElementById("chatName");
 const chatInput = document.getElementById("chatInput");
+
+// Ник владельца — автоматически получает галочку на своих сообщениях.
+const OWNER_CHAT_NAME = "NikitaWindowsFan";
+
+// Роли участников чата (модератор / галочка), выдаются владельцем вручную,
+// хранятся в Firestore по uid собеседника (chatRoles/{uid} -> {role}).
+// Доступно на чтение всем (чтобы бейджи видели все), менять может только админ.
+let chatRolesMap = {};
+let chatRolesInited = false;
+function watchChatRoles(){
+  if(chatRolesInited) return;
+  chatRolesInited = true;
+  chatRolesCollection.onSnapshot(snap=>{
+    const map = {};
+    snap.forEach(d=> map[d.id] = d.data().role);
+    chatRolesMap = map;
+    if(chatInited) renderChatMessages(lastChatDocs);
+  }, err=>{ console.error("Роли чата недоступны:", err); });
+}
+function badgeFor(msg){
+  if(msg.isOwner || msg.name === OWNER_CHAT_NAME) return '<span class="chat-badge owner" title="Владелец канала">✔</span>';
+  const role = chatRolesMap[msg.uid];
+  if(role === "mod") return '<span class="chat-badge mod" title="Модератор">🛡</span>';
+  if(role === "verified") return '<span class="chat-badge verified" title="Отмечен владельцем">✔</span>';
+  return "";
+}
+function setChatRole(uid, role){
+  if(!uid) return;
+  if(role){
+    chatRolesCollection.doc(uid).set({ role: role }).catch(err=> alert("Не получилось выдать роль: " + err.message));
+  }else{
+    chatRolesCollection.doc(uid).delete().catch(err=> alert("Не получилось снять роль: " + err.message));
+  }
+}
 const chatSendBtn = document.getElementById("chatSendBtn");
 
 // ==== Жёсткий фильтр мата ====
@@ -1618,7 +1663,9 @@ function refreshChatSendState(){
 
 let chatInited = false;
 let lastChatSentAt = 0;
+let lastChatDocs = [];
 function renderChatMessages(docs){
+  lastChatDocs = docs;
   if(!docs.length){
     chatMessagesEl.innerHTML = '<p class="chat-empty">Сообщений пока нет.</p>';
     return;
@@ -1627,18 +1674,65 @@ function renderChatMessages(docs){
   chatMessagesEl.innerHTML = docs.map(d=>{
     const m = d.data();
     const time = m.ts && m.ts.toDate ? m.ts.toDate().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}) : "";
-    return `<div class="chat-msg"><span class="chat-name">${escapeHtml(m.name||"Гость")}</span>${escapeHtml(m.text||"")}<span class="chat-time">${time}</span></div>`;
+    const uid = m.uid || "";
+    const isOwnerMsg = !!(m.isOwner || m.name === OWNER_CHAT_NAME);
+    // Кнопки выдачи роли — видны только админу, и не показываются для его же сообщений.
+    const adminTools = (isAdminSignedIn && uid && !isOwnerMsg) ? `
+      <span class="chat-admin-tools">
+        <button type="button" class="chat-role-btn" data-uid="${escapeHtml(uid)}" data-role="${chatRolesMap[uid]==='mod' ? '' : 'mod'}" title="${chatRolesMap[uid]==='mod' ? 'Снять модератора' : 'Выдать модератора'}">🛡</button>
+        <button type="button" class="chat-role-btn" data-uid="${escapeHtml(uid)}" data-role="${chatRolesMap[uid]==='verified' ? '' : 'verified'}" title="${chatRolesMap[uid]==='verified' ? 'Снять галочку' : 'Выдать галочку'}">✔</button>
+      </span>` : "";
+    return `<div class="chat-msg"><span class="chat-name">${escapeHtml(m.name||"Гость")}${badgeFor(m)}</span>${escapeHtml(m.text||"")}<span class="chat-time">${time}</span>${adminTools}</div>`;
   }).join("");
   if(wasAtBottom) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
 }
+chatMessagesEl.addEventListener("click", e=>{
+  const btn = e.target.closest(".chat-role-btn");
+  if(!btn || !isAdminSignedIn) return;
+  setChatRole(btn.dataset.uid, btn.dataset.role || null);
+});
+
+// ==== Автоочистка чата раз в ~3 часа ====
+// Запускается в браузере владельца (только у него сейчас открыт чат) — удаляет
+// из Firestore сообщения старше CHAT_MAX_AGE_MS. Это клиентская, а не серверная
+// задача (нет бэкенда/cloud functions), поэтому чистка реально происходит, пока
+// открыт сайт у админа; старые сообщения при этом в любом случае не показываются
+// никому дольше этого срока (см. фильтр в initTestChat).
+const CHAT_MAX_AGE_MS = 3 * 60 * 60 * 1000;
+let chatCleanupTimer = null;
+function cleanupOldChatMessages(){
+  if(!isAdminSignedIn) return;
+  const cutoff = new Date(Date.now() - CHAT_MAX_AGE_MS);
+  chatCollection.where("ts", "<", cutoff).limit(400).get().then(snap=>{
+    if(snap.empty) return;
+    const batch = db.batch();
+    snap.forEach(d=> batch.delete(d.ref));
+    return batch.commit();
+  }).catch(err=> console.error("Не получилось очистить старые сообщения чата:", err));
+}
 function initTestChat(){
+  try{
+    if(isAdminSignedIn && !localStorage.getItem(CHAT_NAME_KEY)){
+      chatNameInput.value = OWNER_CHAT_NAME;
+    }else{
+      chatNameInput.value = localStorage.getItem(CHAT_NAME_KEY) || (isAdminSignedIn ? OWNER_CHAT_NAME : "");
+    }
+  }catch(e){}
+  watchChatRoles();
+  cleanupOldChatMessages();
+  clearInterval(chatCleanupTimer);
+  chatCleanupTimer = setInterval(cleanupOldChatMessages, 15*60*1000);
   if(chatInited) return;
   chatInited = true;
-  try{ chatNameInput.value = localStorage.getItem(CHAT_NAME_KEY) || ""; }catch(e){}
   refreshChatSendState();
   chatCollection.orderBy("ts","desc").limit(50).onSnapshot(snap=>{
+    const cutoff = Date.now() - CHAT_MAX_AGE_MS;
     const docs = [];
-    snap.forEach(d=>docs.push(d));
+    snap.forEach(d=>{
+      const m = d.data();
+      if(m.ts && m.ts.toDate && m.ts.toDate().getTime() < cutoff) return; // старше 3ч — не показываем
+      docs.push(d);
+    });
     docs.reverse();
     renderChatMessages(docs);
   }, err=>{
@@ -1683,6 +1777,7 @@ function sendChatMessage(){
     uid: getChatUid(),
     name: name,
     text: text.slice(0,300),
+    isOwner: isAdminSignedIn,
     ts: firebase.firestore.FieldValue.serverTimestamp()
   }).then(()=>{
     lastChatSentAt = now;
