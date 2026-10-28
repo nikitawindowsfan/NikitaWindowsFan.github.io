@@ -10,34 +10,44 @@
   :root{
     --bg:#0b0e14;
     --panel:#11151d;
+    --panel-rgb:17,21,29;
     --panel-alt:#161b25;
+    --panel-alt-rgb:22,27,37;
     --border:#232935;
     --text:#dde3ea;
     --text-soft:#b9c1cc;
     --muted:#7d8797;
     --accent:#4da6ff;
+    --accent-rgb:77,166,255;
     --accent-on-accent:#06111c;
     --accent-dim:#2a4a6b;
     --live:#ff5c5c;
     --surface-deep:#05070a;
+    --surface-deep-rgb:5,7,10;
     --taskbar-bg:#0a0d12;
+    --taskbar-rgb:10,13,18;
     --ease-smooth:cubic-bezier(.22,.61,.36,1);
   }
   body.light-theme{
     --bg:#f4f5f7;
     --panel:#ffffff;
+    --panel-rgb:255,255,255;
     --panel-alt:#eef1f5;
+    --panel-alt-rgb:238,241,245;
     --border:#dbe0e6;
     --text:#1c2128;
     --text-soft:#3d4551;
     --muted:#66707c;
     --accent:#2f6fed;
+    --accent-rgb:47,111,237;
     --accent-on-accent:#ffffff;
     --accent-dim:#c9dcfc;
     --live:#e0454c;
     --surface-deep:#eef1f5;
+    --surface-deep-rgb:238,241,245;
     --taskbar-bg:#ffffff;
-    --glow:13%;
+    --taskbar-rgb:255,255,255;
+    --glow-a:.13;
   }
   body.light-theme header.hero img{filter:invert(1);}
   *{box-sizing:border-box;}
@@ -46,15 +56,17 @@
   body{
     /* --alpha — непрозрачность интерфейса (1 = полностью плотный), меняется в настройках */
     --alpha:.88;
-    --glow:20%;
-    --panel-t:color-mix(in srgb, var(--panel) calc(var(--alpha) * 100%), transparent);
-    --panel-alt-t:color-mix(in srgb, var(--panel-alt) calc(var(--alpha) * 100%), transparent);
-    --taskbar-t:color-mix(in srgb, var(--taskbar-bg) calc(var(--alpha) * 100%), transparent);
-    --deep-t:color-mix(in srgb, var(--surface-deep) calc(var(--alpha) * 100%), transparent);
-    --accent-t:color-mix(in srgb, var(--accent) calc(var(--alpha) * 100%), transparent);
+    --glow-a:.20;
+    /* rgba() с RGB-триплетами вместо color-mix() — тот же эффект прозрачности,
+       но работает и в чуть более старых браузерах без современных CSS-функций цвета */
+    --panel-t:rgba(var(--panel-rgb), var(--alpha));
+    --panel-alt-t:rgba(var(--panel-alt-rgb), var(--alpha));
+    --taskbar-t:rgba(var(--taskbar-rgb), var(--alpha));
+    --deep-t:rgba(var(--surface-deep-rgb), var(--alpha));
+    --accent-t:rgba(var(--accent-rgb), var(--alpha));
     background:
-      radial-gradient(900px 520px at 10% -8%, color-mix(in srgb, var(--accent) var(--glow), transparent), transparent 70%),
-      radial-gradient(800px 520px at 100% 0%, color-mix(in srgb, var(--accent) calc(var(--glow) * .6), transparent), transparent 70%),
+      radial-gradient(900px 520px at 10% -8%, rgba(var(--accent-rgb), var(--glow-a)), transparent 70%),
+      radial-gradient(800px 520px at 100% 0%, rgba(var(--accent-rgb), calc(var(--glow-a) * .6)), transparent 70%),
       var(--bg);
     background-attachment:fixed;
     color:var(--text);
@@ -386,7 +398,7 @@
   }
   .btn:hover:not(:disabled){
     filter:brightness(1.08);transform:translateY(-1px);
-    box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 28%,transparent);
+    box-shadow:0 6px 16px rgba(var(--accent-rgb), .28);
   }
   .btn:active:not(:disabled){transform:translateY(0) scale(.98);}
   .btn:disabled{cursor:wait;opacity:.6;transform:none;box-shadow:none;}
@@ -463,8 +475,15 @@
     display:flex;align-items:center;gap:8px;line-height:1.3;
   }
   .video-card:hover{border-color:var(--accent-dim);color:var(--accent);}
-  .video-frame{aspect-ratio:16/9;width:100%;border:1px solid var(--border);border-radius:4px;overflow:hidden;background:var(--surface-deep);}
+  .video-frame{aspect-ratio:16/9;width:100%;border:1px solid var(--border);border-radius:4px;overflow:hidden;background:var(--surface-deep);position:relative;}
   .video-frame iframe,.video-frame video{width:100%;height:100%;display:block;border:none;}
+  /* В браузерах без aspect-ratio (Safari < 15 и т.п.) держим пропорцию 16:9
+     старым способом — через padding-top — иначе блок схлопнется в 0 высотой. */
+  @supports not (aspect-ratio: 1 / 1){
+    .player{height:0;padding-top:56.25%;}
+    .video-frame{height:0;padding-top:56.25%;}
+    .video-frame iframe,.video-frame video{position:absolute;inset:0;}
+  }
   .video-modal{max-width:720px;}
   .video-modal .video-frame{margin-bottom:14px;}
 
@@ -615,14 +634,19 @@
 
     var accent = read("nwf_accent");
     if(accent && /^#[0-9a-fA-F]{6}$/.test(accent)){
-      var parts = accent.replace("#","").match(/.{1,2}/g);
+      var parts = accent.replace("#","").match(/.{1,2}/g).map(function(v){ return parseInt(v,16); });
       document.body.style.setProperty("--accent", accent);
-      document.body.style.setProperty("--accent-dim",
-        theme === "light"
-          ? "color-mix(in srgb, " + accent + " 28%, white)"
-          : "color-mix(in srgb, " + accent + " 38%, black)");
+      document.body.style.setProperty("--accent-rgb", parts.join(","));
+      // Считаем смешение сами (а не через CSS color-mix) — работает и в чуть
+      // более старых браузерах, где этой CSS-функции ещё нет.
+      var mixWith = theme === "light" ? [255,255,255] : [0,0,0];
+      var mixP = theme === "light" ? 0.28 : 0.38;
+      var mixed = [0,1,2].map(function(i){
+        return Math.round(parts[i]*mixP + mixWith[i]*(1-mixP));
+      });
+      document.body.style.setProperty("--accent-dim", "rgb(" + mixed.join(",") + ")");
       var lin = parts.map(function(v){
-        v = parseInt(v,16)/255;
+        v = v/255;
         return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4);
       });
       var lum = 0.2126*lin[0] + 0.7152*lin[1] + 0.0722*lin[2];
@@ -1182,6 +1206,18 @@ function relativeLuminance([r,g,b]){
   });
   return 0.2126*a[0] + 0.7152*a[1] + 0.0722*a[2];
 }
+// Считаем смешение цветов сами (как CSS color-mix(in srgb, A P%, B)), а не
+// через саму CSS-функцию — она не поддерживается в чуть более старых браузерах
+// (Safari < 16.2 и т.п.), и там получился бы невалидный цвет.
+function mixHex(hex, percent, withHex){
+  const a = hexToRgb(hex);
+  const b = hexToRgb(withHex);
+  const p = percent/100;
+  const r = Math.round(a[0]*p + b[0]*(1-p));
+  const g = Math.round(a[1]*p + b[1]*(1-p));
+  const bl = Math.round(a[2]*p + b[2]*(1-p));
+  return "rgb(" + r + "," + g + "," + bl + ")";
+}
 // Выбранное оформление храним в localStorage, а если он недоступен
 // (приватный режим, встроенный браузер Telegram) — дублируем в cookie.
 const THEME_KEY = "nwf_theme", ACCENT_KEY = "nwf_accent", ALPHA_KEY = "nwf_alpha";
@@ -1227,15 +1263,16 @@ function applyAccent(hex){
   // всегда оставался стандартным.
   const rootStyle = document.documentElement.style;
   const bodyStyle = document.body.style;
-  ["--accent","--accent-dim","--accent-on-accent"].forEach(prop=>{
+  ["--accent","--accent-rgb","--accent-dim","--accent-on-accent"].forEach(prop=>{
     rootStyle.removeProperty(prop);
     bodyStyle.removeProperty(prop);
   });
   if(!hex) return;
   const isLight = resolveTheme(savedTheme) === "light";
   bodyStyle.setProperty("--accent", hex);
+  bodyStyle.setProperty("--accent-rgb", hexToRgb(hex).join(","));
   bodyStyle.setProperty("--accent-dim",
-    isLight ? `color-mix(in srgb, ${hex} 28%, white)` : `color-mix(in srgb, ${hex} 38%, black)`);
+    isLight ? mixHex(hex, 28, "#ffffff") : mixHex(hex, 38, "#000000"));
   const lum = relativeLuminance(hexToRgb(hex));
   bodyStyle.setProperty("--accent-on-accent", lum > 0.5 ? "#06111c" : "#ffffff");
 }
