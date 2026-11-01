@@ -3,9 +3,42 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0e14">
 <title>NikitaWindowsFan</title>
+
+<!-- Профиль устройства определяется ДО отрисовки страницы: на слабом телефоне
+     облегчённый режим включается сразу, ещё до первого кадра — без размытий,
+     тяжёлого фона и бесконечных анимаций. Пользователь может переключить режим
+     вручную в настройках (кнопка 🎨), выбор запоминается. -->
+<script>
+(function(){
+  var pref = "auto";
+  try{ pref = localStorage.getItem("nwf_perf") || "auto"; }catch(e){}
+  var nav = navigator || {};
+  var mem = typeof nav.deviceMemory === "number" ? nav.deviceMemory : 0;   // ГБ (Chrome/Android)
+  var cores = typeof nav.hardwareConcurrency === "number" ? nav.hardwareConcurrency : 0;
+  var conn = nav.connection || nav.mozConnection || nav.webkitConnection || null;
+  var saveData = !!(conn && conn.saveData);
+  var slowNet = !!(conn && (conn.effectiveType === "slow-2g" || conn.effectiveType === "2g"));
+  var phone = !!(window.matchMedia && window.matchMedia("(max-width: 720px)").matches);
+  var weak = saveData || slowNet || (mem > 0 && mem <= 4) || (cores > 0 && cores <= 4 && phone);
+  var lite = pref === "lite" ? true : (pref === "full" ? false : weak);
+  window.__nwfPerf = { pref: pref, lite: lite, weak: weak, mem: mem, cores: cores, saveData: saveData };
+  document.documentElement.className += lite ? " perf-lite" : " perf-full";
+})();
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
+<link rel="preload" as="image" href="logo-256.webp" imagesrcset="logo-128.webp 128w, logo-256.webp 256w, logo-384.webp 384w" imagesizes="64px" type="image/webp">
+<!-- Шрифты не блокируют первую отрисовку: текст сразу рисуется системным шрифтом,
+     а Unbounded/IBM Plex подставляются, когда догрузятся (font-display=swap). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap"></noscript>
 <style>
   :root{
     --bg:#0b0e14;
@@ -109,6 +142,7 @@
     padding:36px 24px 20px;
     max-width:1040px;margin:0 auto;
   }
+  header.hero picture{display:flex;flex-shrink:0;align-items:center;}
   header.hero img{height:64px;width:auto;flex-shrink:0;}
   .logotype{font-size:26px;font-weight:800;margin:0;letter-spacing:-.01em;}
 
@@ -512,7 +546,8 @@
     text-align:center;padding:24px;gap:10px;
   }
   .maintenance-overlay.active{display:flex;}
-  .maintenance-overlay img{height:56px;width:auto;margin-bottom:10px;}
+  .maintenance-overlay picture{display:flex;margin-bottom:10px;}
+  .maintenance-overlay img{height:56px;width:auto;}
   .maintenance-overlay h2{
     font-family:'Unbounded',sans-serif;font-size:19px;margin:0;
     color:var(--text);font-weight:700;
@@ -616,6 +651,99 @@
     .modal{padding:18px 16px 20px;}
     footer{padding:14px 16px 28px;font-size:11.5px;}
   }
+  /* ===== ОПТИМИЗАЦИЯ ПОД РАЗНЫЕ ТЕЛЕФОНЫ =====
+     Слабые/старые устройства получают класс html.perf-lite (ставится ещё в <head>),
+     мощные — html.perf-full. Ниже — что именно упрощается в лёгком режиме:
+     убираем дорогие размытия подложек, полупрозрачность поверх видео и
+     бесконечные анимации (они не дают телефону «уснуть» и греют процессор). */
+  html.perf-lite body{
+    /* Плотные фоны вместо полупрозрачных: телефону не нужно каждую прокрутку
+       пересобирать слои над видео */
+    --panel-t:var(--panel);
+    --panel-alt-t:var(--panel-alt);
+    --taskbar-t:var(--taskbar-bg);
+    --deep-t:var(--surface-deep);
+    --accent-t:rgba(var(--accent-rgb), .92);
+    /* Тяжёлый многослойный градиент с фиксацией к экрану — только заливка */
+    background:var(--bg);
+    background-attachment:scroll;
+  }
+  html.perf-lite .taskbar,
+  html.perf-lite main,
+  html.perf-lite .modal,
+  html.perf-lite .overlay{
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  }
+  html.perf-lite .overlay{background:rgba(4,6,9,.72);}
+  html.perf-lite header.hero img{animation:none;will-change:auto;}
+  html.perf-lite .live-badge:not(.off) .live-dot::after{animation:none;opacity:0;}
+  html.perf-lite .chat-badge.owner{animation:none;box-shadow:0 0 0 1px rgba(255,214,120,.7);}
+  html.perf-lite .cp-spinner-ring{animation-duration:1.1s;}
+  /* Длинные списки рисуем только когда до них долистали (меньше работы при скролле) */
+  html.perf-lite .news-item,
+  html.perf-lite .video-card{
+    content-visibility:auto;contain-intrinsic-size:auto 96px;
+  }
+  /* Меньше «прыжков» при появлении вкладок: каскад короткий, без дальних сдвигов */
+  html.perf-lite .view.active .news-item,
+  html.perf-lite .view.active .video-card,
+  html.perf-lite .view.active .about-text,
+  html.perf-lite .view.active > .block-title,
+  html.perf-lite .view.active .home-grid > div{
+    animation-duration:.28s;
+    animation-name:fade-in;
+  }
+  html.perf-lite .view.active .news-item,
+  html.perf-lite .view.active .video-card{animation-delay:calc(var(--i,0) * 22ms);}
+
+  /* Любой телефон: фиксированный фон при скролле дёргается (особенно iOS) */
+  @media(max-width:900px){
+    body{background-attachment:scroll;}
+  }
+
+  /* Планшет/телефон в полном экране: видео сверху во всю ширину, чат — полосой снизу */
+  @media(max-width:720px){
+    .home-grid:fullscreen{
+      grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;
+      grid-template-areas:"video" "chat";
+      padding:0;gap:0;align-content:stretch;
+    }
+    .home-grid:fullscreen .chat-box{
+      height:32vh;min-height:150px;border-radius:0;
+      border-left:none;border-right:none;border-bottom:none;
+    }
+  }
+
+  /* Телефоны: мелочи, которые заметно мешают на практике */
+  @media(max-width:600px){
+    body{overflow-x:hidden;}
+    /* 16px в полях — иначе iOS Safari сам зумит страницу при фокусе на поле.
+       Селекторы вроде .chat-name-input перебивают обычное правило элемента,
+       поэтому здесь нужен !important. */
+    input,textarea,select{font-size:16px!important;}
+    .chat-name-input{flex-basis:108px;}
+    .tabs{scroll-snap-type:x proximity;}
+    .tab{scroll-snap-align:start;}
+    .chat-messages{padding:9px 10px;overscroll-behavior:contain;}
+    .chat-msg{font-size:13.5px;}
+  }
+  /* Пальцем попасть проще, если элементы не мельче 38 px */
+  @media(pointer:coarse){
+    .tab,.cp-btn,.btn,.gear,.theme-toggle{touch-action:manipulation;}
+    .cp-btn{min-width:38px;min-height:38px;}
+    .chat-input-row .btn{padding:9px 16px;}
+    .tab{display:flex;align-items:center;min-height:40px;}
+    .video-card{padding:15px;}
+  }
+
+  /* Кнопка «показать все сообщения» в чате (появляется, если история обрезана) */
+  .chat-more{
+    align-self:center;margin:2px auto 6px;padding:5px 12px;
+    background:var(--panel-alt-t);color:var(--muted);border:1px solid var(--border);
+    border-radius:20px;font-size:11.5px;font-family:inherit;cursor:pointer;
+  }
+  .chat-more:hover{color:var(--text);border-color:var(--accent-dim);}
+
   @media(prefers-reduced-motion:reduce){
     *,*::before,*::after{
       animation-duration:.01ms!important;animation-iteration-count:1!important;
@@ -674,7 +802,10 @@
 </script>
 
 <div class="maintenance-overlay" id="maintenanceOverlay">
-  <img src="logo.png" alt="Логотип NikitaWindowsFan">
+  <picture>
+    <source type="image/webp" srcset="logo-128.webp 128w, logo-256.webp 256w" sizes="56px">
+    <img src="logo-256.png" width="256" height="128" alt="Логотип NikitaWindowsFan" loading="lazy" decoding="async">
+  </picture>
   <h2>Наш сайт находится в технической профилактике</h2>
   <p>Мы скоро вернёмся. Следите за новостями в тг: <a href="https://t.me/NikitaWindowsFan" target="_blank" rel="noopener" style="color:var(--accent);">@NikitaWindowsFan</a></p>
   <div class="maint-when" id="maintWhen"></div>
@@ -690,7 +821,10 @@
 </div>
 
 <header class="hero">
-  <img src="logo.png" alt="Логотип NikitaWindowsFan">
+  <picture>
+    <source type="image/webp" srcset="logo-128.webp 128w, logo-256.webp 256w, logo-384.webp 384w" sizes="(max-width:600px) 44px, 64px">
+    <img src="logo-256.png" width="256" height="128" alt="Логотип NikitaWindowsFan" decoding="async" fetchpriority="high">
+  </picture>
   <div>
     <p class="logotype" style="margin:0;">NikitaWindowsFan</p>
   </div>
@@ -843,6 +977,17 @@
       <input type="range" id="alphaRange" min="55" max="100" step="1" value="88">
     </div>
 
+    <div class="set-group">
+      <div class="set-label">Режим работы <b id="perfNote"></b></div>
+      <div class="seg">
+        <button type="button" id="perfAutoBtn" title="Сам подбирает режим под телефон">⚡ Авто</button>
+        <button type="button" id="perfFullBtn" title="Все эффекты и анимации">🚀 Полный</button>
+        <button type="button" id="perfLiteBtn" title="Полегче: без размытий и постоянных анимаций">🪶 Лёгкий</button>
+      </div>
+      <p class="admin-hint" style="margin:8px 0 0;">«Авто» включает лёгкий режим на слабых телефонах,
+        при экономии трафика или медленной сети — сайт остаётся плавным и меньше греет батарею.</p>
+    </div>
+
     <button class="btn secondary" id="resetAppearanceBtn" style="margin-top:4px;">Сбросить по умолчанию</button>
   </div>
 </div>
@@ -981,6 +1126,19 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const siteRef = db.collection("public").doc("site");
 let siteSnapshotReady = false;
+
+// Профиль устройства. Ставится ещё в <head> (до отрисовки), здесь только читаем.
+// Объявлено рано, потому что функции чата/плеера читают это в любой момент.
+let perfLite = !!(window.__nwfPerf && window.__nwfPerf.lite);
+let perfPref = (window.__nwfPerf && window.__nwfPerf.pref) || "auto";
+// Safari на iPhone/iPad умеет играть HLS сам, без hls.js — это заметно экономнее
+// и по памяти, и по процессору. На остальных устройствах подключаем hls.js.
+const CAN_NATIVE_HLS = (function(){
+  try{
+    const v = document.createElement("video");
+    return !!(v.canPlayType && v.canPlayType("application/vnd.apple.mpegurl"));
+  }catch(e){ return false; }
+})();
 // Эти переменные объявлены здесь (а не ниже), потому что первый снимок Firestore
 // может прийти очень быстро — раньше, чем выполнится остальной скрипт.
 let isAdminSignedIn = false;
@@ -1220,6 +1378,7 @@ document.querySelectorAll(".tab").forEach(tab=>{
 
 // Часы
 function tickClock(){
+  if(document.hidden) return; // в фоне часы не перерисовываем
   const now = new Date();
   document.getElementById("clock").textContent = now.toLocaleTimeString("ru-RU");
 }
@@ -1420,6 +1579,46 @@ document.getElementById("resetAppearanceBtn").onclick = ()=>{
   refreshSettingsUI();
 };
 
+// ==== Режим работы: авто / полный / лёгкий ====
+// Лёгкий режим — это не «обрезанный» сайт, а отказ от того, что сильнее всего
+// грузит слабые телефоны: размытия подложек, полупрозрачность над видео,
+// бесконечные анимации и большие буферы потока. Всё остальное на месте.
+// Перезагрузку плеера/чата делает код, определённый ниже (perfHookReload),
+// чтобы этот блок не зависел от порядка объявлений.
+let perfHookReload = null;
+const PERF_KEY = "nwf_perf";
+function refreshPerfUI(){
+  const autoBtn = document.getElementById("perfAutoBtn");
+  if(!autoBtn) return;
+  document.getElementById("perfFullBtn").classList.toggle("on", perfPref === "full");
+  document.getElementById("perfLiteBtn").classList.toggle("on", perfPref === "lite");
+  autoBtn.classList.toggle("on", perfPref === "auto");
+  const note = document.getElementById("perfNote");
+  if(note) note.textContent = perfLite ? "лёгкий" : "полный";
+}
+function applyPerfProfile(){
+  const weak = !!(window.__nwfPerf && window.__nwfPerf.weak);
+  perfLite = perfPref === "lite" ? true : (perfPref === "full" ? false : weak);
+  const root = document.documentElement;
+  root.classList.toggle("perf-lite", perfLite);
+  root.classList.toggle("perf-full", !perfLite);
+  refreshPerfUI();
+  if(perfHookReload) perfHookReload();
+}
+function setPerfMode(mode){
+  perfPref = (mode === "lite" || mode === "full") ? mode : "auto";
+  writePreference(PERF_KEY, perfPref);
+  applyPerfProfile();
+}
+(function(){
+  const autoBtn = document.getElementById("perfAutoBtn");
+  if(!autoBtn) return;
+  autoBtn.onclick = ()=> setPerfMode("auto");
+  document.getElementById("perfFullBtn").onclick = ()=> setPerfMode("full");
+  document.getElementById("perfLiteBtn").onclick = ()=> setPerfMode("lite");
+})();
+applyPerfProfile();
+
 
 // ==== Плеер прямого эфира ====
 if(location.protocol === "https:" && STREAM_URL.startsWith("http:")){
@@ -1429,7 +1628,14 @@ const livePlayer = videojs("livePlayer", {
   autoplay: "muted",
   muted: true,
   liveui: true,
-  html5: { vhs: { overrideNative: true, enableLowInitialPlaylist: true } }
+  html5: {
+    vhs: {
+      // overrideNative:true заставлял даже Safari гонять поток через JS-декодер VHS.
+      // Если браузер умеет HLS сам — отдаём поток ему: меньше памяти и CPU.
+      overrideNative: !CAN_NATIVE_HLS,
+      enableLowInitialPlaylist: true
+    }
+  }
 });
 if(typeof livePlayer.httpSourceSelector === "function"){
   livePlayer.httpSourceSelector(); // кнопка выбора качества, появится сама, если у потока есть разные битрейты
@@ -1518,8 +1724,19 @@ function loadCustomLive(){
   cOfflineBox.classList.remove("show");
   stopLiveHls();
   cVideo.removeAttribute("src");
-  if(window.Hls && Hls.isSupported()){
-    cHls = new Hls({ lowLatencyMode:true });
+  if(CAN_NATIVE_HLS){
+    // iPhone/iPad: поток играет сам Safari — hls.js не нужен
+    cVideo.src = STREAM_URL;
+  }else if(window.Hls && Hls.isSupported()){
+    const hlsCfg = { lowLatencyMode:true, capLevelToPlayerSize:true };
+    if(perfLite){
+      // Слабый телефон: короткий буфер — меньше памяти, меньше декодирования,
+      // быстрее возврат к «живому краю» после просадки сети.
+      hlsCfg.maxBufferLength = 12;
+      hlsCfg.maxMaxBufferLength = 24;
+      hlsCfg.backBufferLength = 8;
+    }
+    cHls = new Hls(hlsCfg);
     cHls.loadSource(STREAM_URL);
     cHls.attachMedia(cVideo);
     cHls.on(Hls.Events.ERROR, (evt,data)=>{
@@ -1584,6 +1801,8 @@ function stopPixelate(){
 function startPixelate(scale){
   stopPixelate();
   function draw(){
+    // Свёрнутая вкладка/фон — кадры не рисуем, телефон не греется зря
+    if(document.hidden){ pixelateRAF = requestAnimationFrame(draw); return; }
     if(cVideo.readyState >= 2 && cVideo.videoWidth){
       const w = Math.max(16, Math.round(cVideo.videoWidth*scale));
       const h = Math.max(9, Math.round(cVideo.videoHeight*scale));
@@ -1645,6 +1864,16 @@ function stopCustomPlayer(){
   setCpLoading(false);
   clearInterval(chatCleanupTimer);
 }
+
+// Смена режима работы на лету: перезапускаем поток (у лёгкого режима другой
+// размер буфера) и перерисовываем чат — в нём меняется длина истории.
+perfHookReload = function(){
+  // Полный перезапуск плеера и чата: у лёгкого режима другой буфер потока,
+  // а в чате — другая длина показываемой истории.
+  if(customPlayerInited) stopCustomPlayer();
+  if(typeof refreshPlayerAdminUI === "function") refreshPlayerAdminUI();
+  if(chatInited) renderChatMessages(lastChatDocs);
+};
 
 // ==== Чат тестового плеера ====
 // Хранится в Firestore (коллекция "chat"), пишут ВСЕ, кто видит тестовый плеер —
@@ -2026,14 +2255,36 @@ document.getElementById("openRolesBtn").onclick = ()=>{
 document.getElementById("closeRolesModal").onclick = ()=> rolesOverlay.classList.remove("active");
 rolesOverlay.onclick = (e)=>{ if(e.target === rolesOverlay) rolesOverlay.classList.remove("active"); };
 
+let chatShowAll = false;      // «Показать ещё» — человек сам решил показать всю историю
+let chatRenderQueued = false;
+let chatRenderPending = null;
+// Новые сообщения могут прилетать пачкой (сразу несколько) — собираем их в один
+// кадр, чтобы не пересобирать весь список чата несколько раз подряд.
+function scheduleChatRender(docs){
+  chatRenderPending = docs;
+  if(chatRenderQueued) return;
+  chatRenderQueued = true;
+  const run = ()=>{
+    chatRenderQueued = false;
+    if(chatRenderPending) renderChatMessages(chatRenderPending);
+  };
+  if(window.requestAnimationFrame) requestAnimationFrame(run); else setTimeout(run, 90);
+}
 function renderChatMessages(docs){
   lastChatDocs = docs;
   if(!docs.length){
     chatMessagesEl.innerHTML = '<p class="chat-empty">Сообщений пока нет.</p>';
     return;
   }
+  // На слабом телефоне перерисовывать сотню сообщений на каждое новое — дорого.
+  // Показываем последние, а остальное открывается кнопкой.
+  const cap = (perfLite && !chatShowAll) ? 25 : 0;
+  const shownDocs = (cap && docs.length > cap) ? docs.slice(docs.length - cap) : docs;
+  const hiddenCount = docs.length - shownDocs.length;
   const wasAtBottom = chatMessagesEl.scrollHeight - chatMessagesEl.scrollTop - chatMessagesEl.clientHeight < 40;
-  chatMessagesEl.innerHTML = docs.map(d=>{
+  chatMessagesEl.innerHTML = (hiddenCount
+    ? `<button type="button" class="chat-more">Показать ещё ${hiddenCount}</button>`
+    : "") + shownDocs.map(d=>{
     const m = d.data();
     const time = m.ts && m.ts.toDate ? m.ts.toDate().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}) : "";
     const uid = m.uid || "";
@@ -2054,6 +2305,11 @@ function renderChatMessages(docs){
   if(wasAtBottom) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
 }
 chatMessagesEl.addEventListener("click", e=>{
+  if(e.target.closest(".chat-more")){
+    chatShowAll = true;
+    renderChatMessages(lastChatDocs);
+    return;
+  }
   const btn = e.target.closest(".chat-role-btn");
   if(!btn || !isAdminSignedIn) return;
   setChatRole(btn.dataset.uid, btn.dataset.role || null);
@@ -2103,7 +2359,7 @@ function initTestChat(){
       docs.push(d);
     });
     docs.reverse();
-    renderChatMessages(docs);
+    scheduleChatRender(docs);
     renderChatRolesAdmin();
   }, err=>{
     console.error("Чат недоступен — проверь Firestore Rules для коллекции chat:", err);
@@ -2362,6 +2618,26 @@ document.getElementById("saveAboutBtn").onclick = ()=>{
   siteData.about = document.getElementById("aboutEdit").value;
   saveSite();
 };
+
+// ==== Батарея на слабых телефонах ====
+// Пока сайт свёрнут (человек ушёл в другое приложение), видео не декодируем —
+// это самая прожорливая часть страницы. Возвращается — продолжаем с «живого края».
+let hiddenPaused = [];
+document.addEventListener("visibilitychange", ()=>{
+  if(!perfLite) return;
+  if(document.hidden){
+    hiddenPaused = [];
+    try{
+      if(customPlayerActive && cVideo && !cVideo.paused){ hiddenPaused.push(cVideo); cVideo.pause(); }
+    }catch(e){}
+    try{
+      if(livePlayer && !livePlayer.paused()){ hiddenPaused.push(livePlayer); livePlayer.pause(); }
+    }catch(e){}
+  }else{
+    hiddenPaused.forEach(v=>{ try{ const pr = v.play(); if(pr && pr.catch) pr.catch(()=>{}); }catch(e){} });
+    hiddenPaused = [];
+  }
+});
 
 </script>
 </body>
