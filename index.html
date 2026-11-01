@@ -366,6 +366,8 @@
     opacity:1;visibility:visible;pointer-events:auto;
     transition:opacity .2s ease;
   }
+  /* Окно ролей открывается поверх уже открытой админ-панели */
+  #rolesOverlay{z-index:60;}
   .modal{
     background:var(--panel-t);border:1px solid var(--border);border-radius:8px;
     -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
@@ -829,6 +831,22 @@
   </div>
 </div>
 
+<!-- Роли в чате — отдельное окно, открывается из админ-панели -->
+<div class="overlay" id="rolesOverlay">
+  <div class="modal admin-modal">
+    <button class="admin-close" id="closeRolesModal">✕</button>
+    <h2>Роли в чате</h2>
+    <p class="admin-hint">Кнопки «✓» и «🛡» есть и прямо у сообщений в чате. Здесь — все участники.
+      Себя понизить нельзя: у тебя всегда золотая галочка владельца.</p>
+    <div class="role-manual">
+      <input type="text" id="roleManualUid" placeholder="UID участника">
+      <input type="text" id="roleManualName" placeholder="Ник (необязательно)" maxlength="24">
+      <button class="btn mini" id="roleManualGrant" type="button">Выдать галочку</button>
+    </div>
+    <div id="adminChatRoles"></div>
+  </div>
+</div>
+
 <!-- Админ-панель -->
 <div class="overlay" id="overlay">
   <div class="modal admin-modal">
@@ -899,14 +917,7 @@
       <hr class="divider">
 
       <label>Роли в чате (галочка / модератор)</label>
-      <p class="admin-hint">Кнопки «✓» и «🛡» есть и прямо у сообщений в чате. Здесь — все участники.
-        Себя понизить нельзя: у тебя всегда золотая галочка владельца.</p>
-      <div class="role-manual">
-        <input type="text" id="roleManualUid" placeholder="UID участника">
-        <input type="text" id="roleManualName" placeholder="Ник (необязательно)" maxlength="24">
-        <button class="btn mini" id="roleManualGrant" type="button">Выдать галочку</button>
-      </div>
-      <div id="adminChatRoles"></div>
+      <button class="btn secondary" id="openRolesBtn" type="button">👥 Открыть список ролей</button>
 
       <hr class="divider">
       <button class="btn secondary" id="logoutBtn">Выйти</button>
@@ -1973,6 +1984,16 @@ function renderChatRolesAdmin(){
     renderChatMessages(lastChatDocs);
   });
 })();
+
+// Роли в чате — отдельное окно, открывается кнопкой из админ-панели.
+const rolesOverlay = document.getElementById("rolesOverlay");
+document.getElementById("openRolesBtn").onclick = ()=>{
+  if(!isAdminSignedIn) return;
+  renderChatRolesAdmin();
+  rolesOverlay.classList.add("active");
+};
+document.getElementById("closeRolesModal").onclick = ()=> rolesOverlay.classList.remove("active");
+rolesOverlay.onclick = (e)=>{ if(e.target === rolesOverlay) rolesOverlay.classList.remove("active"); };
 
 function renderChatMessages(docs){
   lastChatDocs = docs;
