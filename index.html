@@ -194,6 +194,21 @@
     position:absolute;inset:0;width:100%;height:100%;z-index:1;
     background:#000;image-rendering:pixelated;image-rendering:crisp-edges;
   }
+  /* Спиннер загрузки — виден, пока поток подключается или подвисает на буферизации */
+  .cp-spinner{
+    display:none;position:absolute;inset:0;z-index:4;
+    flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    background:rgba(5,7,10,.45);pointer-events:none;
+  }
+  .cp-spinner.show{display:flex;}
+  .cp-spinner span{font-size:12px;color:#e4e8ed;letter-spacing:.02em;}
+  .cp-spinner-ring{
+    width:38px;height:38px;border-radius:50%;
+    border:3px solid rgba(255,255,255,.25);
+    border-top-color:var(--accent);
+    animation:cp-spin .8s linear infinite;
+  }
+  @keyframes cp-spin{to{transform:rotate(360deg);}}
   .cp-controls{
     position:absolute;left:0;right:0;bottom:0;z-index:7;
     display:flex;align-items:center;gap:8px;flex-wrap:wrap;
@@ -711,6 +726,7 @@
           <span class="live-badge off" id="cLiveBadge"><span class="live-dot"></span><span id="cLiveText">проверяем эфир…</span></span>
           <video id="cVideo" playsinline muted preload="auto"></video>
           <canvas class="cp-canvas" id="cpCanvas" style="display:none;"></canvas>
+          <div class="cp-spinner" id="cpSpinner"><div class="cp-spinner-ring"></div><span>Загрузка…</span></div>
           <div class="offline" id="cOfflineBox">
             <strong>NikitaWindowsFan сейчас не вещает</strong>
             <span>Следить за новостями в тг: <a href="https://t.me/NikitaWindowsFan" target="_blank" rel="noopener">@NikitaWindowsFan</a></span>
@@ -1465,6 +1481,7 @@ const cVideo = document.getElementById("cVideo");
 const cpCanvas = document.getElementById("cpCanvas");
 const cpCtx = cpCanvas.getContext("2d", { alpha:false });
 const cOfflineBox = document.getElementById("cOfflineBox");
+const cSpinner = document.getElementById("cpSpinner");
 const cLiveBadge = document.getElementById("cLiveBadge");
 const cLiveText = document.getElementById("cLiveText");
 const cpPlay = document.getElementById("cpPlay");
@@ -1485,12 +1502,20 @@ function setCLive(on){
   cOfflineBox.classList.toggle("show", !on);
   cLiveBadge.classList.toggle("off", !on);
   cLiveText.textContent = on ? "в эфире" : "не в эфире";
+  if(on) setCpLoading(false);
+}
+// Спиннер загрузки — показываем, пока подключаемся/подвисаем на буферизации,
+// и прячем, как только реально пошло воспроизведение или показан офлайн-блок.
+function setCpLoading(on){
+  cSpinner.classList.toggle("show", on);
 }
 
 function stopLiveHls(){
   if(cHls){ try{ cHls.destroy(); }catch(e){} cHls = null; }
 }
 function loadCustomLive(){
+  setCpLoading(true);
+  cOfflineBox.classList.remove("show");
   stopLiveHls();
   cVideo.removeAttribute("src");
   if(window.Hls && Hls.isSupported()){
@@ -1521,9 +1546,14 @@ cVideo.addEventListener("playing", ()=>{
   cFailCount = 0;
   setCLive(true);
 });
+cVideo.addEventListener("waiting", ()=>{
+  // Буферизация во время воспроизведения (просадка сети и т.п.) — тоже крутим спиннер.
+  if(customPlayerActive) setCpLoading(true);
+});
 cVideo.addEventListener("error", ()=>{
   if(!customPlayerActive) return;
   setCLive(false);
+  setCpLoading(false);
   scheduleCRetry();
 });
 
@@ -1612,6 +1642,7 @@ function stopCustomPlayer(){
   cOfflineBox.classList.remove("show");
   cLiveBadge.classList.add("off");
   cLiveText.textContent = "проверяем эфир…";
+  setCpLoading(false);
   clearInterval(chatCleanupTimer);
 }
 
