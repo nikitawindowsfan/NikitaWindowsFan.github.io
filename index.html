@@ -913,8 +913,8 @@
       <button class="btn secondary" id="forgetDeviceBtn">Скрыть шестерёнку на этом устройстве</button>
 
       <hr class="divider">
-      <label>Тестовый плеер (видно и включается только тебе)</label>
-      <button class="btn secondary" id="togglePlayerBtn">🧪 Тестовый плеер: выкл</button>
+      <label>Новый плеер и чат (включение — сразу для всех посетителей сайта)</label>
+      <button class="btn secondary" id="togglePlayerBtn">🧪 Новый плеер: выкл (видно всем)</button>
     </div>
   </div>
 </div>
@@ -987,7 +987,10 @@ let siteData = {
   videos: DEFAULT_VIDEOS,
   about: DEFAULT_ABOUT,
   updates: DEFAULT_UPDATES,
-  maintenance: DEFAULT_MAINTENANCE
+  maintenance: DEFAULT_MAINTENANCE,
+  // Включено/выключено для ВСЕХ посетителей сайта (не только для тебя) —
+  // переключается кнопкой в самом низу админ-панели.
+  testPlayerPublic: false
 };
 
 function saveSite(){
@@ -1004,7 +1007,8 @@ siteRef.onSnapshot(snap=>{
       about: typeof data.about === "string" ? data.about : DEFAULT_ABOUT,
       updates: Array.isArray(data.updates) ? data.updates : DEFAULT_UPDATES,
       maintenance: (data.maintenance && typeof data.maintenance === "object") ? data.maintenance : DEFAULT_MAINTENANCE,
-      chatRoles: (data.chatRoles && typeof data.chatRoles === "object") ? data.chatRoles : {}
+      chatRoles: (data.chatRoles && typeof data.chatRoles === "object") ? data.chatRoles : {},
+      testPlayerPublic: data.testPlayerPublic === true
     };
   }else{
     siteRef.set(siteData);
@@ -1021,6 +1025,9 @@ siteRef.onSnapshot(snap=>{
   renderAbout();
   renderUpdates();
   renderMaintenance();
+  // Плеер/чат теперь общий переключатель для всех — реагируем на изменение
+  // сразу у всех открытых вкладок посетителей, не только у админа.
+  try{ refreshPlayerAdminUI(); }catch(e){ /* объявится чуть позже в скрипте */ }
 }, err=>{
   console.error("Firestore недоступен, проверь firebaseConfig и правила доступа:", err);
 });
@@ -2132,31 +2139,19 @@ function refreshGearVisibility(){
 refreshGearVisibility();
 
 
-// ==== Тестовый плеер — кнопка лежит в самом низу админ-панели, то есть
-// видна и нажимаема ТОЛЬКО после входа через Firebase Auth. Обычный посетитель
-// её вообще не видит, потому что никогда не попадает внутрь #adminBox.
+// ==== Новый плеер + чат — теперь общий переключатель для ВСЕХ посетителей
+// сайта (не только для тебя). Состояние лежит в Firestore (siteData.testPlayerPublic),
+// поэтому синхронизируется у всех в реальном времени. Включать/выключать
+// по-прежнему может только админ — кнопка лежит в самом низу админ-панели
+// и неактивна без входа через Firebase Auth.
 const togglePlayerBtn = document.getElementById("togglePlayerBtn");
 const stablePlayerWrap = document.getElementById("stablePlayerWrap");
 const customPlayerWrap = document.getElementById("customPlayerWrap");
 const testChatWrap = document.getElementById("testChatWrap");
 const homeGrid = document.getElementById("homeGrid");
 
-// Выбранное состояние тестового плеера храним в localStorage, чтобы оно
-// переживало перезагрузку страницы и браузера.
-const TEST_PLAYER_KEY = "nwf_testplayer";
-function readTestPlayerPreference(){
-  try{ return localStorage.getItem(TEST_PLAYER_KEY) === "1"; }catch(e){ return false; }
-}
-function saveTestPlayerPreference(on){
-  try{ localStorage.setItem(TEST_PLAYER_KEY, on ? "1" : "0"); }catch(e){}
-}
-let testPlayerOn = readTestPlayerPreference();
-
 function refreshPlayerAdminUI(){
-  // isAdminSignedIn становится true только после того, как Firebase восстановит
-  // вход, поэтому сохранённую настройку здесь НЕ сбрасываем — иначе плеер
-  // «слетает» при каждой перезагрузке. Без входа он просто не показывается.
-  const showTestPlayer = isAdminSignedIn && testPlayerOn;
+  const showTestPlayer = !!(siteData && siteData.testPlayerPublic);
   const wasShowing = customPlayerWrap.style.display === "block";
   stablePlayerWrap.style.display = showTestPlayer ? "none" : "block";
   customPlayerWrap.style.display = showTestPlayer ? "block" : "none";
@@ -2165,12 +2160,12 @@ function refreshPlayerAdminUI(){
   if(homeGrid) homeGrid.classList.toggle("test-mode", showTestPlayer);
   togglePlayerBtn.disabled = !isAdminSignedIn;
   togglePlayerBtn.textContent = showTestPlayer
-    ? "🧪 Тестовый плеер: ВКЛ (видно только тебе)"
-    : "🧪 Тестовый плеер: выкл";
+    ? "🧪 Новый плеер: ВКЛ (видно всем)"
+    : "🧪 Новый плеер: выкл (видно всем)";
   if(showTestPlayer){
     initCustomPlayer();
     initTestChat();
-    // Пока открыт тестовый плеер, основной останавливаем, чтобы не тянуть
+    // Пока открыт новый плеер, основной останавливаем, чтобы не тянуть
     // один и тот же поток дважды.
     stablePlayerSuspended = true;
     clearTimeout(retryTimer);
@@ -2184,9 +2179,9 @@ function refreshPlayerAdminUI(){
   }
 }
 togglePlayerBtn.onclick = ()=>{
-  if(!isAdminSignedIn) return;
-  testPlayerOn = !testPlayerOn;
-  saveTestPlayerPreference(testPlayerOn);
+  if(!isAdminSignedIn || !siteSnapshotReady) return;
+  siteData.testPlayerPublic = !siteData.testPlayerPublic;
+  saveSite();
   refreshPlayerAdminUI();
 };
 refreshPlayerAdminUI();
