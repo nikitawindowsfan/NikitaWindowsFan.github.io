@@ -31,9 +31,21 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://testilve.duckdns.org" crossorigin>
 <link rel="preconnect" href="https://www.gstatic.com">
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
+<!-- Адрес эфира и прогрев соединения: пока браузер качает библиотеки плеера,
+     он уже открывает TLS-соединение с сервером эфира и забирает манифест.
+     На мобильной сети это экономит 0,3–1 с до первого кадра. -->
+<script>
+window.NWF_STREAM_URL = "https://testilve.duckdns.org/live/NikitaWindowsFan/index.m3u8";
+try{
+  if(window.fetch){
+    fetch(window.NWF_STREAM_URL, { mode:"cors", cache:"no-store" }).catch(function(){});
+  }
+}catch(e){}
+</script>
 <link rel="preload" as="image" href="logo-256.webp" imagesrcset="logo-128.webp 128w, logo-256.webp 256w, logo-384.webp 384w" imagesizes="64px" type="image/webp">
 <!-- Шрифты не блокируют первую отрисовку: текст сразу рисуется системным шрифтом,
      а Unbounded/IBM Plex подставляются, когда догрузятся (font-display=swap). -->
@@ -1109,7 +1121,8 @@ const ADMIN_EMAIL = "nikita@nikitawindowsfan.local"; // замени на реа
 
 // ==== ПРЯМОЙ ЭФИР (HLS) ====
 // Для GitHub Pages (https) ссылка тоже должна быть https, иначе браузер заблокирует поток.
-const STREAM_URL = "https://testilve.duckdns.org/live/NikitaWindowsFan/index.m3u8";
+// Адрес задаётся в <head> — оттуда же прогревается соединение (window.NWF_STREAM_URL).
+const STREAM_URL = window.NWF_STREAM_URL || "https://testilve.duckdns.org/live/NikitaWindowsFan/index.m3u8";
 
 // ==== FIREBASE (общее хранилище для всех посетителей) ====
 // Вставь сюда конфиг своего проекта из консоли Firebase (Project settings → General → Your apps)
@@ -1633,7 +1646,14 @@ const livePlayer = videojs("livePlayer", {
       // overrideNative:true заставлял даже Safari гонять поток через JS-декодер VHS.
       // Если браузер умеет HLS сам — отдаём поток ему: меньше памяти и CPU.
       overrideNative: !CAN_NATIVE_HLS,
-      enableLowInitialPlaylist: true
+      enableLowInitialPlaylist: true,
+      // Быстрый старт: начинаем с лёгкого качества и переключаемся выше по факту,
+      // а не наоборот (иначе первые секунды = затыки).
+      limitRenditionByPlayerDimensions: true,
+      // На мобильной сети используем реальную оценку скорости из браузера
+      useNetworkInformationApi: true,
+      // Плавная смена качества без чёрного экрана и перезапуска звука
+      smoothQualityChange: true
     }
   }
 });
@@ -1664,9 +1684,10 @@ function loadStream(){
 function scheduleRetry(){
   clearTimeout(retryTimer);
   failCount++;
-  // первые попытки — быстрые (поток мог просто на секунду моргнуть),
-  // дальше — раз в 15 секунд, чтобы не долбить сервер без толку
-  const delay = failCount <= 4 ? 2000 : 15000;
+  // первая попытка — почти сразу (поток мог просто на секунду моргнуть),
+  // дальше — быстрые, и только серия неудач уводит на 15 секунд,
+  // чтобы не долбить сервер без толку
+  const delay = failCount === 1 ? 800 : (failCount <= 4 ? 2000 : 15000);
   retryTimer = setTimeout(loadStream, delay);
 }
 livePlayer.on("playing", ()=>{
@@ -1719,6 +1740,60 @@ function setCpLoading(on){
 function stopLiveHls(){
   if(cHls){ try{ cHls.destroy(); }catch(e){} cHls = null; }
 }
+// Настройка hls.js под прямой эфир. Задача — быстрый первый кадр и минимум
+// буферизаций, особенно на мобильной сети.
+function buildHlsConfig(){
+  const cfg = {
+    lowLatencyMode: true,
+    capLevelToPlayerSize: true,
+    // Стартуем на два сегмента от «живого края» вместо трёх — эфир появляется
+    // быстрее и отставание меньше.
+    liveSyncDurationCount: 2,
+    liveMaxLatencyDurationCount: 6,
+    // Если отстали от эфира (просадка сети), плеер мягко ускоряется до 1.15×,
+    // а не копит отставание. Выше не поднимаем, чтобы не было «прыжков».
+    maxLiveSyncPlaybackRate: 1.15,
+    // Первый фрагмент качаем заранее — минус один круг задержки при старте.
+    startFragPrefetch: true,
+    // Разбор плейлиста во втором потоке: главный поток свободен, скролл и чат
+    // не дёргаются на слабых телефонах.
+    enableWorker: true,
+    backBufferLength: 30,
+    // Мобильная сеть рвётся — повторяем чаще и дольше, чем по умолчанию,
+    // иначе зритель видит «не в эфире» из-за одного потерянного пакета.
+    manifestLoadingMaxRetry: 6,
+    manifestLoadingRetryDelay: 700,
+    levelLoadingMaxRetry: 8,
+    levelLoadingRetryDelay: 500,
+    fragLoadingMaxRetry: 10,
+    fragLoadingRetryDelay: 500
+  };
+  if(perfLite){
+    // Слабый телефон: короткий буфер — меньше памяти и декодирования,
+    // быстрее возврат к «живому краю» после просадки сети.
+    cfg.maxBufferLength = 12;
+    cfg.maxMaxBufferLength = 24;
+    cfg.backBufferLength = 6;
+  }else{
+    cfg.maxBufferLength = 20;
+    cfg.maxMaxBufferLength = 40;
+  }
+  return cfg;
+}
+
+// Мягкое восстановление вместо полного перезапуска: при обрыве сети
+// докачиваем поток, при сбое декодера перезапускаем только медиа-часть.
+// Полная переинициализация (с новым манифестом) — последний вариант.
+function recoverHls(data){
+  if(!cHls) return false;
+  const types = Hls.ErrorTypes || {};
+  try{
+    if(data.type === types.NETWORK_ERROR && cHls.startLoad){ cHls.startLoad(); return true; }
+    if(data.type === types.MEDIA_ERROR && cHls.recoverMediaError){ cHls.recoverMediaError(); return true; }
+  }catch(e){}
+  return false;
+}
+
 function loadCustomLive(){
   setCpLoading(true);
   cOfflineBox.classList.remove("show");
@@ -1728,19 +1803,19 @@ function loadCustomLive(){
     // iPhone/iPad: поток играет сам Safari — hls.js не нужен
     cVideo.src = STREAM_URL;
   }else if(window.Hls && Hls.isSupported()){
-    const hlsCfg = { lowLatencyMode:true, capLevelToPlayerSize:true };
-    if(perfLite){
-      // Слабый телефон: короткий буфер — меньше памяти, меньше декодирования,
-      // быстрее возврат к «живому краю» после просадки сети.
-      hlsCfg.maxBufferLength = 12;
-      hlsCfg.maxMaxBufferLength = 24;
-      hlsCfg.backBufferLength = 8;
-    }
-    cHls = new Hls(hlsCfg);
+    cHls = new Hls(buildHlsConfig());
     cHls.loadSource(STREAM_URL);
     cHls.attachMedia(cVideo);
+    if(Hls.Events.MANIFEST_PARSED){
+      // Как только стал известен список качеств — применяем выбор зрителя.
+      // Если качество выбрали до загрузки манифеста, здесь же переключаемся
+      // с «пиксельной» экономии на настоящий битрейт.
+      cHls.on(Hls.Events.MANIFEST_PARSED, ()=> setQuality(currentQuality));
+    }
     cHls.on(Hls.Events.ERROR, (evt,data)=>{
-      if(data && data.fatal){ setCLive(false); scheduleCRetry(); }
+      if(!data || !data.fatal) return;
+      if(recoverHls(data)) return;          // докачались/перезапустили декодер
+      setCLive(false); scheduleCRetry();    // совсем не вышло — перезапуск
     });
   }else if(cVideo.canPlayType("application/vnd.apple.mpegurl")){
     cVideo.src = STREAM_URL;
@@ -1754,7 +1829,9 @@ function loadCustomLive(){
 function scheduleCRetry(){
   clearTimeout(cRetryTimer);
   cFailCount++;
-  const delay = cFailCount <= 4 ? 2000 : 15000;
+  // Первая повторная попытка — почти сразу (поток мог моргнуть на секунду),
+  // дальше 2 с, и только после серии неудач — раз в 15 с, чтобы не долбить сервер.
+  const delay = cFailCount === 1 ? 800 : (cFailCount <= 4 ? 2000 : 15000);
   cRetryTimer = setTimeout(loadCustomLive, delay);
 }
 
@@ -1791,9 +1868,21 @@ cpFullscreen.onclick = ()=>{
   else if(target && target.requestFullscreen){ target.requestFullscreen(); }
 };
 
-// ==== Качество (честно: это визуальный эффект на стороне браузера —
-// рисуем кадр на маленьком canvas и растягиваем его блоками (пиксельно).
-// Трафик при этом НЕ уменьшается — поток как был, так и качается полностью. ====
+// ==== Качество ====
+// Если поток многобитрейтный, переключаем НАСТОЯЩИЙ уровень в hls.js: трафик,
+// память и нагрузка на процессор реально падают. Если в потоке один битрейт
+// (или HLS играет сам Safari, без hls.js) — честно показываем «экономию»
+// картинкой: кадр рисуется на маленьком canvas и растягивается блоками. ====
+function applyHlsQuality(q){
+  if(!cHls || !cHls.levels || cHls.levels.length < 2) return false;
+  const n = cHls.levels.length;
+  // Только ограничиваем потолок, а не фиксируем уровень: внутри потолка
+  // автоматика продолжает подбирать качество под сеть — так плавнее.
+  cHls.autoLevelCapping = q === "auto" ? -1 : (q === "mid" ? Math.max(0, Math.ceil(n / 2) - 1) : 0);
+  if(cHls.currentLevel !== -1) cHls.currentLevel = -1; // возвращаем ABR в авто
+  return true;
+}
+
 function stopPixelate(){
   if(pixelateRAF) cancelAnimationFrame(pixelateRAF);
   pixelateRAF = null;
@@ -1817,11 +1906,13 @@ function startPixelate(scale){
 }
 function setQuality(q){
   currentQuality = q;
-  if(q === "auto"){
+  const realLevel = applyHlsQuality(q);
+  if(realLevel || q === "auto"){
     cpCanvas.style.display = "none";
     cVideo.style.display = "";
     stopPixelate();
   }else{
+    // один битрейт — экономим только картинкой
     cVideo.style.display = "none";
     cpCanvas.style.display = "";
     startPixelate(q === "mid" ? 0.5 : 0.22);
