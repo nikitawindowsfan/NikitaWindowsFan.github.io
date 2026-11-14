@@ -31,7 +31,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-<link rel="preconnect" href="https://testilve.duckdns.org" crossorigin>
+<link rel="preconnect" href="https://nikitawindowsfan.duckdns.org" crossorigin>
 <link rel="preconnect" href="https://www.gstatic.com">
 <link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
@@ -39,7 +39,7 @@
      он уже открывает TLS-соединение с сервером эфира и забирает манифест.
      На мобильной сети это экономит 0,3–1 с до первого кадра. -->
 <script>
-window.NWF_STREAM_URL = "https://testilve.duckdns.org/live/NikitaWindowsFan/index.m3u8";
+window.NWF_STREAM_URL = "https://nikitawindowsfan.duckdns.org/live/NikitaWindowsFan/index.m3u8";
 try{
   if(window.fetch){
     fetch(window.NWF_STREAM_URL, { mode:"cors", cache:"no-store" }).catch(function(){});
@@ -1122,7 +1122,7 @@ const ADMIN_EMAIL = "nikita@nikitawindowsfan.local"; // замени на реа
 // ==== ПРЯМОЙ ЭФИР (HLS) ====
 // Для GitHub Pages (https) ссылка тоже должна быть https, иначе браузер заблокирует поток.
 // Адрес задаётся в <head> — оттуда же прогревается соединение (window.NWF_STREAM_URL).
-const STREAM_URL = window.NWF_STREAM_URL || "https://testilve.duckdns.org/live/NikitaWindowsFan/index.m3u8";
+const STREAM_URL = window.NWF_STREAM_URL || "https://nikitawindowsfan.duckdns.org/live/NikitaWindowsFan/index.m3u8";
 
 // ==== FIREBASE (общее хранилище для всех посетителей) ====
 // Вставь сюда конфиг своего проекта из консоли Firebase (Project settings → General → Your apps)
