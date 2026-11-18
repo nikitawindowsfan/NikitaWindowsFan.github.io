@@ -21,7 +21,12 @@
   var saveData = !!(conn && conn.saveData);
   var slowNet = !!(conn && (conn.effectiveType === "slow-2g" || conn.effectiveType === "2g"));
   var phone = !!(window.matchMedia && window.matchMedia("(max-width: 720px)").matches);
-  var weak = saveData || slowNet || (mem > 0 && mem <= 4) || (cores > 0 && cores <= 4 && phone);
+  // Слабый = мало памяти/ядер при узком экране, экономия трафика или очень слабый CPU.
+  // Настольный компьютер с 4 ГБ и 8 ядрами остаётся в полном режиме.
+  var weak = saveData || slowNet ||
+             (mem > 0 && mem <= 2) ||
+             (cores > 0 && cores <= 2) ||
+             (phone && ((mem > 0 && mem <= 4) || (cores > 0 && cores <= 4)));
   var lite = pref === "lite" ? true : (pref === "full" ? false : weak);
   window.__nwfPerf = { pref: pref, lite: lite, weak: weak, mem: mem, cores: cores, saveData: saveData };
   document.documentElement.className += lite ? " perf-lite" : " perf-full";
@@ -49,50 +54,61 @@ try{
 <link rel="preload" as="image" href="logo-256.webp" imagesrcset="logo-128.webp 128w, logo-256.webp 256w, logo-384.webp 384w" imagesizes="64px" type="image/webp">
 <!-- Шрифты не блокируют первую отрисовку: текст сразу рисуется системным шрифтом,
      а Unbounded/IBM Plex подставляются, когда догрузятся (font-display=swap). -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap"></noscript>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"></noscript>
 <style>
   :root{
-    --bg:#0b0e14;
-    --panel:#11151d;
-    --panel-rgb:17,21,29;
-    --panel-alt:#161b25;
-    --panel-alt-rgb:22,27,37;
-    --border:#232935;
-    --text:#dde3ea;
-    --text-soft:#b9c1cc;
-    --muted:#7d8797;
-    --accent:#4da6ff;
-    --accent-rgb:77,166,255;
-    --accent-on-accent:#06111c;
-    --accent-dim:#2a4a6b;
-    --live:#ff5c5c;
-    --surface-deep:#05070a;
-    --surface-deep-rgb:5,7,10;
-    --taskbar-bg:#0a0d12;
-    --taskbar-rgb:10,13,18;
+    /* Палитра «Vice»: ночной Майами, неон и закат */
+    --bg:#12001f;
+    --panel:#1b0a2b;
+    --panel-rgb:27,10,43;
+    --panel-alt:#251238;
+    --panel-alt-rgb:37,18,56;
+    --border:#3d2258;
+    --text:#ffeaf7;
+    --text-soft:#e8cbe6;
+    --muted:#b892c9;
+    --accent:#ff2e88;
+    --accent-rgb:255,46,136;
+    --accent-on-accent:#1b0011;
+    --accent-dim:#7d1a52;
+    --live:#ff3b5c;
+    --surface-deep:#080014;
+    --surface-deep-rgb:8,0,20;
+    --taskbar-bg:#180627;
+    --taskbar-rgb:24,6,39;
+    --vice-pink:#ff2e88;
+    --vice-violet:#a32bff;
+    --vice-teal:#00e6d0;
+    --vice-gold:#ffc857;
+    --vice-orange:#ff8a3d;
     --ease-smooth:cubic-bezier(.22,.61,.36,1);
   }
   body.light-theme{
-    --bg:#f4f5f7;
+    /* Дневной Майами: пастельный закат */
+    --bg:#fff0f7;
     --panel:#ffffff;
     --panel-rgb:255,255,255;
-    --panel-alt:#eef1f5;
-    --panel-alt-rgb:238,241,245;
-    --border:#dbe0e6;
-    --text:#1c2128;
-    --text-soft:#3d4551;
-    --muted:#66707c;
-    --accent:#2f6fed;
-    --accent-rgb:47,111,237;
+    --panel-alt:#ffe4f1;
+    --panel-alt-rgb:255,228,241;
+    --border:#ffc3dd;
+    --text:#2b0a25;
+    --text-soft:#5a2447;
+    --muted:#8d5a7c;
+    --accent:#e5146c;
+    --accent-rgb:229,20,108;
     --accent-on-accent:#ffffff;
-    --accent-dim:#c9dcfc;
-    --live:#e0454c;
-    --surface-deep:#eef1f5;
-    --surface-deep-rgb:238,241,245;
+    --accent-dim:#ffaed2;
+    --live:#e01f45;
+    --surface-deep:#fff5fa;
+    --surface-deep-rgb:255,245,250;
     --taskbar-bg:#ffffff;
     --taskbar-rgb:255,255,255;
     --glow-a:.13;
+    --vice-pink:#e5146c;
+    --vice-violet:#8b2bd6;
+    --vice-teal:#00a89a;
+    --vice-gold:#e39a00;
   }
   body.light-theme header.hero img{filter:invert(1);}
   *{box-sizing:border-box;}
@@ -119,7 +135,7 @@ try{
     line-height:1.5;
     min-height:100vh;
   }
-  h1,h2,h3,.logotype,.tab,.taskbar-title{font-family:'Unbounded',sans-serif;}
+  h1,h2,h3,.logotype,.tab,.taskbar-title{font-family:'Anton','Unbounded',sans-serif;}
 
   /* Taskbar */
   .taskbar{
@@ -756,6 +772,365 @@ try{
   }
   .chat-more:hover{color:var(--text);border-color:var(--accent-dim);}
 
+  /* =====================================================================
+     ОФОРМЛЕНИЕ «VICE»: неон, закат, крупные заголовки в духе постеров GTA.
+     Здесь только слой стиля — разметка и поведение сайта не меняются,
+     поэтому старые правила можно спокойно оставить выше.
+     ===================================================================== */
+
+  /* Фон: фиксированная картинка заката + мягкое затемнение сверху,
+     чтобы шапка и вкладки читались на любом участке. */
+  body{
+    background:
+      linear-gradient(180deg, rgba(10,0,20,.92) 0%, rgba(10,0,20,.55) 22%, rgba(10,0,20,0) 48%),
+      url("vice.svg") center bottom / cover no-repeat,
+      var(--bg);
+    background-attachment:fixed;
+  }
+  body.light-theme{
+    background:
+      linear-gradient(180deg, rgba(255,240,247,.96) 0%, rgba(255,240,247,.62) 26%, rgba(255,240,247,.1) 52%),
+      url("vice.svg") center bottom / cover no-repeat,
+      var(--bg);
+    background-attachment:fixed;
+  }
+  /* Плёночное зерно — один слой поверх всего, очень слабый */
+  body::after{
+    content:"";position:fixed;inset:0;z-index:2;pointer-events:none;
+    opacity:.05;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+  }
+  ::selection{background:var(--vice-pink);color:#fff;}
+
+  /* Тонкий неоновый скроллбар */
+  *{scrollbar-width:thin;scrollbar-color:var(--vice-pink) transparent;}
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-track{background:rgba(0,0,0,.25);}
+  ::-webkit-scrollbar-thumb{
+    background:linear-gradient(180deg,var(--vice-pink),var(--vice-violet));
+    border-radius:8px;border:2px solid transparent;background-clip:padding-box;
+  }
+
+  /* ---- Заголовки ---- */
+  h1,h2,h3,.logotype,.tab,.taskbar-title{letter-spacing:.015em;}
+  .logotype{
+    font-size:clamp(30px,4.6vw,52px);line-height:.95;text-transform:uppercase;
+    background:linear-gradient(180deg,#fff3a8 0%,#ffd166 32%,#ff7ab8 66%,#ff2e88 100%);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+    filter:drop-shadow(0 3px 0 rgba(120,0,60,.55)) drop-shadow(0 0 26px rgba(255,46,136,.45));
+    padding-bottom:2px;
+  }
+  body.light-theme .logotype{
+    background:linear-gradient(180deg,#ffb703 0%,#ff4d94 55%,#b5179e 100%);
+    -webkit-background-clip:text;background-clip:text;
+    filter:drop-shadow(0 2px 0 rgba(255,255,255,.6)) drop-shadow(0 0 18px rgba(229,20,108,.25));
+  }
+  .hero-tag{
+    display:inline-flex;align-items:center;gap:7px;margin:0 0 8px;
+    padding:4px 10px;border-radius:3px;
+    font-family:'IBM Plex Sans',sans-serif;font-size:10.5px;font-weight:700;
+    letter-spacing:.18em;text-transform:uppercase;
+    color:#12000f;background:linear-gradient(90deg,var(--vice-gold),var(--vice-orange));
+    box-shadow:0 0 18px rgba(255,138,61,.35);
+  }
+  h3.block-title{
+    display:flex;align-items:center;gap:9px;
+    font-size:15px;text-transform:uppercase;letter-spacing:.12em;
+    color:var(--text);font-weight:400;
+  }
+  h3.block-title::before{
+    content:"";width:22px;height:3px;border-radius:2px;flex-shrink:0;
+    background:linear-gradient(90deg,var(--vice-pink),var(--vice-orange));
+    box-shadow:0 0 10px rgba(var(--accent-rgb),.7);
+  }
+  .modal h2{
+    text-transform:uppercase;letter-spacing:.05em;font-size:17.5px;line-height:1.2;
+    background:linear-gradient(90deg,var(--vice-pink),var(--vice-orange));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .offline strong,.video-modal h2{font-family:'Anton','Unbounded',sans-serif;text-transform:uppercase;}
+
+  /* ---- Верхняя панель ---- */
+  .taskbar{
+    border-bottom:1px solid rgba(var(--accent-rgb),.35);
+    box-shadow:0 1px 0 rgba(255,255,255,.04),0 10px 30px -18px rgba(var(--accent-rgb),.8);
+  }
+  .taskbar-title{font-family:'IBM Plex Sans',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;}
+  .gear,.theme-toggle{border-radius:4px;}
+  .gear:hover,.theme-toggle:hover{box-shadow:0 0 14px rgba(var(--accent-rgb),.45);}
+
+  /* ---- Шапка ---- */
+  header.hero{padding:30px 24px 22px;align-items:center;}
+  header.hero > div{min-width:0;flex:1 1 auto;}
+  .logotype{overflow-wrap:anywhere;}
+  header.hero img{filter:drop-shadow(0 4px 18px rgba(255,46,136,.35));}
+  body.light-theme header.hero img{filter:invert(1) drop-shadow(0 4px 18px rgba(229,20,108,.3));}
+  .hero-sub{
+    margin:6px 0 0;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);
+  }
+
+  /* ---- Вкладки: плоские, с неоновым подчёркиванием ---- */
+  nav.tabs{border-bottom:1px solid rgba(var(--accent-rgb),.35);gap:2px;}
+  .tab{
+    background:transparent;border:1px solid transparent;border-bottom:none;
+    border-radius:0;padding:12px 18px 11px;
+    font-family:'IBM Plex Sans',sans-serif;font-size:11.5px;font-weight:700;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+    position:relative;transform:none;
+  }
+  .tab::after{
+    content:"";position:absolute;left:14px;right:14px;bottom:-1px;height:2px;
+    background:linear-gradient(90deg,var(--vice-pink),var(--vice-orange));
+    transform:scaleX(0);transform-origin:left;
+    transition:transform .28s var(--ease-smooth);
+  }
+  .tab:hover{color:var(--text);transform:none;}
+  .tab:hover::after{transform:scaleX(.55);}
+  .tab.active{
+    background:linear-gradient(180deg,rgba(var(--accent-rgb),.16),rgba(var(--accent-rgb),0));
+    border-color:transparent;box-shadow:none;color:var(--text);
+  }
+  .tab.active::after{transform:scaleX(1);box-shadow:0 0 12px rgba(var(--accent-rgb),.8);}
+  .tab:active{transform:none;}
+
+  /* ---- Основная панель: стекло с неоновой рамкой ---- */
+  main{
+    border:1px solid rgba(var(--accent-rgb),.28);
+    border-top:none;
+    box-shadow:0 30px 80px -40px rgba(var(--accent-rgb),.55), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+
+  /* ---- Плеер: рамка с уголками, как рамка кадра ---- */
+  .player{
+    border:1px solid rgba(var(--accent-rgb),.55);
+    border-radius:6px;
+    box-shadow:0 0 0 1px rgba(0,0,0,.45), 0 18px 50px -24px rgba(var(--accent-rgb),.9);
+  }
+  .player::before,.player::after{
+    content:"";position:absolute;width:20px;height:20px;z-index:6;pointer-events:none;
+    border:2px solid var(--vice-gold);opacity:.9;
+  }
+  .player::before{top:-2px;left:-2px;border-right:none;border-bottom:none;border-radius:6px 0 0 0;}
+  .player::after{bottom:-2px;right:-2px;border-left:none;border-top:none;border-radius:0 0 6px 0;}
+  .live-badge{
+    background:rgba(18,0,31,.72);border-color:rgba(var(--accent-rgb),.5);
+    text-transform:uppercase;letter-spacing:.1em;font-size:10px;font-weight:700;
+    color:#ffd9e9;
+  }
+  body.light-theme .live-badge{background:rgba(255,255,255,.82);color:#8d1550;}
+  .live-badge .live-dot{box-shadow:0 0 10px var(--live);}
+
+  /* ---- Кнопки ---- */
+  .btn{
+    border-radius:4px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+    font-size:12px;padding:11px 18px;
+    background:linear-gradient(135deg,var(--vice-pink),var(--vice-violet) 70%,#7b2bff);
+    color:#fff;border:none;
+    box-shadow:0 8px 24px -10px rgba(var(--accent-rgb),.9), inset 0 1px 0 rgba(255,255,255,.22);
+  }
+  .btn:hover:not(:disabled){filter:brightness(1.12) saturate(1.1);box-shadow:0 12px 28px -10px rgba(var(--accent-rgb),1), inset 0 1px 0 rgba(255,255,255,.25);}
+  .btn.secondary{
+    background:rgba(255,255,255,.06);color:var(--text);
+    border:1px solid rgba(var(--accent-rgb),.45);box-shadow:none;
+  }
+  body.light-theme .btn.secondary{background:rgba(255,255,255,.75);}
+  .btn.secondary:hover:not(:disabled){border-color:var(--vice-pink);color:#fff;background:rgba(var(--accent-rgb),.2);filter:none;}
+  body.light-theme .btn.secondary:hover:not(:disabled){color:var(--accent);background:#fff;}
+  .btn.danger{
+    background:rgba(255,59,92,.14);border:1px solid rgba(255,59,92,.55);
+    color:#ff8fa0;box-shadow:none;
+  }
+  .btn.mini{font-size:10.5px;letter-spacing:.06em;padding:6px 10px;}
+  .btn.mini.on{border-color:var(--vice-pink);color:#fff;background:rgba(var(--accent-rgb),.3);}
+
+  /* ---- Карточки видео и новости ---- */
+  .video-card{
+    background:rgba(255,255,255,.045);border:1px solid rgba(var(--accent-rgb),.22);
+    border-radius:5px;text-transform:none;position:relative;overflow:hidden;
+  }
+  body.light-theme .video-card{background:#fff;}
+  .video-card::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:linear-gradient(180deg,var(--vice-pink),var(--vice-orange));
+    transform:scaleY(0);transform-origin:top;transition:transform .28s var(--ease-smooth);
+  }
+  @media(hover:hover){
+    .video-card:hover{transform:translateY(-2px);border-color:rgba(var(--accent-rgb),.6);box-shadow:0 16px 34px -18px rgba(var(--accent-rgb),.85);}
+    .video-card:hover::before{transform:scaleY(1);}
+  }
+  .news-item{border-bottom:1px solid rgba(var(--accent-rgb),.18);}
+  .news-date{
+    color:var(--vice-gold);font-weight:600;letter-spacing:.04em;
+    font-variant-numeric:tabular-nums;
+  }
+  body.light-theme .news-date{color:var(--accent);}
+  .news-body h3{
+    font-family:'Anton','Unbounded',sans-serif;text-transform:uppercase;
+    letter-spacing:.03em;font-size:17px;font-weight:400;
+  }
+  .news-body p{color:var(--text-soft);}
+  .schedule{border-color:rgba(var(--accent-rgb),.22);border-radius:5px;}
+  .schedule-item{border-bottom:1px solid rgba(var(--accent-rgb),.16);}
+  .schedule-item time{
+    color:var(--vice-gold);font-weight:700;letter-spacing:.03em;
+  }
+  body.light-theme .schedule-item time{color:var(--accent);}
+
+  /* ---- Чат: тёмное стекло с неоновым кантом ---- */
+  .chat-box{
+    background:rgba(14,2,26,.72);border:1px solid rgba(var(--accent-rgb),.35);border-radius:6px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  body.light-theme .chat-box{background:rgba(255,255,255,.8);}
+  .chat-head{
+    border-bottom:1px solid rgba(var(--accent-rgb),.25);
+    text-transform:uppercase;letter-spacing:.14em;font-size:10.5px;color:var(--text);
+  }
+  .chat-head-note{letter-spacing:.04em;text-transform:none;font-size:10px;color:var(--muted);}
+  .chat-msg .chat-name{letter-spacing:.01em;}
+  /* В светлой теме золотой/зелёный текст на белом не читается — берём тёмные оттенки */
+  body.light-theme .chat-msg .chat-name.name-owner{
+    background:linear-gradient(135deg,#d97706,#b4194f);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  body.light-theme .chat-msg .chat-name.name-mod,
+  body.light-theme .chat-badge.mod{color:#0f8a4d;}
+  body.light-theme .chat-badge.verified{color:var(--accent);}
+  .chat-input-row{border-top:1px solid rgba(var(--accent-rgb),.25);}
+  .chat-name-input,.chat-text-input{
+    background:rgba(0,0,0,.35);border-color:rgba(var(--accent-rgb),.3);border-radius:4px;
+  }
+  body.light-theme .chat-name-input,body.light-theme .chat-text-input{background:#fff;}
+  .chat-name-input:focus,.chat-text-input:focus{
+    outline:none;border-color:var(--vice-pink);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.2);
+  }
+
+  /* ---- Поля и окна ---- */
+  .modal{
+    border:1px solid rgba(var(--accent-rgb),.4);border-radius:6px;
+    box-shadow:0 40px 90px -40px rgba(var(--accent-rgb),.9), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .overlay{background:rgba(8,0,16,.7);}
+  .modal input,.modal textarea{
+    background:rgba(0,0,0,.35);border-color:rgba(var(--accent-rgb),.3);border-radius:4px;
+  }
+  body.light-theme .modal input,body.light-theme .modal textarea{background:#fff;}
+  .modal input:focus,.modal textarea:focus{
+    outline:none;border-color:var(--vice-pink);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.2);
+  }
+  .modal label{text-transform:uppercase;letter-spacing:.1em;font-size:10px;font-weight:600;}
+  .seg button{
+    border-radius:4px;text-transform:uppercase;letter-spacing:.08em;font-size:10.5px;
+    border-color:rgba(var(--accent-rgb),.3);
+  }
+  .seg button.on{
+    border-color:var(--vice-pink);color:var(--text);
+    box-shadow:inset 0 0 0 1px var(--vice-pink),0 0 16px -4px rgba(var(--accent-rgb),.8);
+  }
+  .swatch{border-radius:4px;}
+  hr.divider{border-top-color:rgba(var(--accent-rgb),.22);}
+  .admin-hint{color:var(--muted);}
+  .role-row{border-color:rgba(var(--accent-rgb),.22);border-radius:5px;}
+
+  /* ---- Кнопки своего плеера ---- */
+  .cp-controls{background:linear-gradient(0deg,rgba(10,0,20,.92),rgba(10,0,20,0));}
+  .cp-btn{
+    border-radius:4px;border-color:rgba(255,255,255,.22);
+    background:rgba(255,255,255,.08);font-weight:600;
+  }
+  .cp-btn:hover{background:rgba(var(--accent-rgb),.35);border-color:var(--vice-pink);}
+  .cp-quality-menu{
+    background:rgba(18,2,32,.97);border-color:rgba(var(--accent-rgb),.45);border-radius:5px;
+  }
+  .cp-quality-menu button.on{color:var(--vice-pink);}
+  .cp-spinner-ring{border-top-color:var(--vice-pink);}
+  .cp-spinner span{letter-spacing:.08em;text-transform:uppercase;font-size:10.5px;}
+
+  /* ---- Подвал ---- */
+  footer{color:var(--muted);letter-spacing:.04em;}
+  footer a:hover{color:var(--vice-pink);}
+
+  /* ---- Лёгкий режим: без зерна и лишних слоёв ---- */
+  html.perf-lite body{
+    background:linear-gradient(180deg,rgba(10,0,20,.94) 0%,rgba(10,0,20,.7) 30%,rgba(10,0,20,.35) 60%),url("vice.svg") center bottom / cover no-repeat,var(--bg);
+    background-attachment:scroll;
+  }
+  html.perf-lite body.light-theme{
+    background:linear-gradient(180deg,rgba(255,240,247,.97) 0%,rgba(255,240,247,.75) 32%,rgba(255,240,247,.25) 62%),url("vice.svg") center bottom / cover no-repeat,var(--bg);
+    background-attachment:scroll;
+  }
+  html.perf-lite body::after{display:none;}
+  html.perf-lite .logotype{filter:none;}
+  html.perf-lite .player::before,html.perf-lite .player::after{display:none;}
+
+  /* ===== Напоминалка о выходе GTA 6 =====
+     Полоса над шапкой: сообщение + живой таймер. Состояния переключаются
+     по времени сами (до старта / Новая Зеландия уже играет / вышла у нас). */
+  .gta-ribbon{
+    display:flex;align-items:center;gap:12px;
+    padding:9px 16px;
+    background:linear-gradient(90deg,#2a0018 0%,#5c0a3f 45%,#2a0018 100%);
+    border-bottom:1px solid rgba(255,46,136,.45);
+    font-size:12.5px;color:#ffe6f2;
+    position:relative;overflow:hidden;
+  }
+  .gta-ribbon::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(90deg,transparent,rgba(255,200,87,.16),transparent);
+    transform:translateX(-100%);
+    animation:gta-sheen 7s ease-in-out infinite;
+  }
+  @keyframes gta-sheen{0%,72%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
+  .gta-ribbon[hidden]{display:none;}
+  .gta-badge{
+    flex-shrink:0;display:inline-flex;align-items:center;gap:6px;
+    padding:4px 9px;border-radius:3px;
+    font-family:'Anton','Unbounded',sans-serif;font-size:12px;letter-spacing:.14em;
+    color:#180014;background:linear-gradient(135deg,#ffe98a,#ffc857 55%,#ff8a3d);
+    box-shadow:0 0 16px rgba(255,200,87,.45);
+  }
+  .gta-text{flex:1 1 auto;min-width:0;line-height:1.35;}
+  .gta-text b{color:#fff;font-weight:700;}
+  .gta-text .gta-note{color:#ffb3d3;}
+  .gta-clock{
+    flex-shrink:0;display:flex;align-items:center;gap:5px;
+    font-variant-numeric:tabular-nums;font-weight:700;font-size:13px;
+    color:#fff;
+  }
+  .gta-clock span{
+    display:inline-block;min-width:26px;text-align:center;
+    padding:2px 5px;border-radius:3px;
+    background:rgba(0,0,0,.35);border:1px solid rgba(255,46,136,.45);
+  }
+  .gta-clock i{font-style:normal;color:var(--vice-pink);font-weight:700;}
+  .gta-ribbon.live .gta-badge{background:linear-gradient(135deg,#c8ffe6,#00e6d0 60%,#00b39a);color:#00201c;}
+  .gta-ribbon.live{border-bottom-color:rgba(0,230,208,.5);}
+  .gta-close{
+    flex-shrink:0;margin-left:2px;width:24px;height:24px;border-radius:4px;
+    background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);
+    color:#ffd9e9;font-size:12px;line-height:1;cursor:pointer;font-family:inherit;
+  }
+  .gta-close:hover{background:rgba(var(--accent-rgb),.35);color:#fff;}
+  @media(max-width:720px){
+    .gta-ribbon{flex-wrap:wrap;gap:8px 10px;padding:9px 12px;font-size:11.5px;}
+    .gta-badge{order:1;font-size:11px;padding:3px 8px;}
+    .gta-clock{order:2;margin-left:auto;font-size:12px;}
+    .gta-close{order:3;margin-left:0;}
+    .gta-text{order:4;flex:1 1 100%;font-size:11.5px;}
+  }
+  html.perf-lite .gta-ribbon::after{animation:none;display:none;}
+
+  /* ---- Телефоны ---- */
+  @media(max-width:720px){
+    header.hero{padding:22px 16px 16px;gap:12px;}
+    .logotype{font-size:clamp(21px,6.6vw,32px);letter-spacing:0;}
+    .hero-sub{font-size:10px;letter-spacing:.1em;}
+    .tab{padding:11px 12px 10px;font-size:10.5px;letter-spacing:.1em;}
+    h3.block-title{font-size:13px;}
+  }
+
   @media(prefers-reduced-motion:reduce){
     *,*::before,*::after{
       animation-duration:.01ms!important;animation-iteration-count:1!important;
@@ -823,6 +1198,15 @@ try{
   <div class="maint-when" id="maintWhen"></div>
 </div>
 
+<!-- Напоминалка о GTA 6. Текст и таймер обновляет скрипт ниже: до старта,
+     после старта в Новой Зеландии и после полуночи по местному времени. -->
+<div class="gta-ribbon" id="gtaRibbon" hidden>
+  <span class="gta-badge" id="gtaBadge">GTA 6</span>
+  <span class="gta-text" id="gtaText"></span>
+  <span class="gta-clock" id="gtaClock"></span>
+  <button type="button" class="gta-close" id="gtaClose" title="Скрыть напоминание" aria-label="Скрыть напоминание">✕</button>
+</div>
+
 <div class="taskbar">
   <span class="taskbar-title">NIKITAWINDOWSFAN · В ЭФИРЕ</span>
   <div class="taskbar-right">
@@ -838,7 +1222,9 @@ try{
     <img src="logo-256.png" width="256" height="128" alt="Логотип NikitaWindowsFan" decoding="async" fetchpriority="high">
   </picture>
   <div>
-    <p class="logotype" style="margin:0;">NikitaWindowsFan</p>
+    <span class="hero-tag">Vice edition ✦ неон и закат</span>
+    <p class="logotype">NikitaWindowsFan</p>
+    <p class="hero-sub">Windows, эфиры и немного Майами</p>
   </div>
 </header>
 
@@ -1389,13 +1775,113 @@ document.querySelectorAll(".tab").forEach(tab=>{
   };
 });
 
+// ==== Напоминалка о выходе GTA 6 ====
+// Игра выходит 19 ноября 2026 в полночь по местному времени, но первой играет
+// Новая Зеландия (UTC+13) — это 18 ноября, 11:00 UTC. Отсюда три состояния:
+// «скоро», «в Новой Зеландии уже играют» и «вышла у нас».
+const GTA_NZ_UNLOCK = Date.UTC(2026, 10, 18, 11, 0, 0);          // 00:00 19.11 по NZDT
+const GTA_LOCAL_UNLOCK = new Date(2026, 10, 19, 0, 0, 0).getTime(); // 00:00 у зрителя
+const GTA_HIDE_KEY = "nwf_gta_hide";
+
+function gtaPad(n){ return String(n).padStart(2, "0"); }
+// «3 дн 04:31:09» для больших сроков, «04:31:09» — для суточных
+function gtaFormatLeft(ms){
+  ms = Math.max(0, ms);
+  const total = Math.floor(ms / 1000);
+  const days = Math.floor(total / 86400);
+  const h = Math.floor(total % 86400 / 3600);
+  const m = Math.floor(total % 3600 / 60);
+  const s = total % 60;
+  return {
+    days: days,
+    text: (days ? days + " дн " : "") + gtaPad(h) + ":" + gtaPad(m) + ":" + gtaPad(s)
+  };
+}
+// «2 ч 14 мин» — для «уже играют»
+function gtaFormatPast(ms){
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const days = Math.floor(total / 86400);
+  const h = Math.floor(total % 86400 / 3600);
+  const m = Math.floor(total % 3600 / 60);
+  if(days) return days + " дн " + h + " ч";
+  if(h) return h + " ч " + gtaPad(m) + " мин";
+  return Math.max(1, m) + " мин";
+}
+// Чистая функция: по времени говорит, что показать. Так её легко проверить.
+function gtaRibbonInfo(now){
+  now = now || Date.now();
+  if(now < GTA_NZ_UNLOCK){
+    const left = gtaFormatLeft(GTA_NZ_UNLOCK - now);
+    return {
+      state: "before",
+      badge: "GTA 6",
+      text: '<b>Grand Theft Auto VI</b> выходит 19 ноября. Первой играет <b>Новая Зеландия</b> — ' +
+            'у них полночь наступит раньше всех. <span class="gta-note">Даже если ты не геймер — теперь ты в курсе 😎</span>',
+      clock: left.text
+    };
+  }
+  if(now < GTA_LOCAL_UNLOCK){
+    const left = gtaFormatLeft(GTA_LOCAL_UNLOCK - now);
+    return {
+      state: "nz",
+      badge: "УЖЕ ИГРАЮТ",
+      text: '<b>GTA 6 уже вышла в Новой Зеландии</b> — там полночь 19 ноября, играют уже ' +
+            gtaFormatPast(now - GTA_NZ_UNLOCK) + '. У нас старт через:',
+      clock: left.text
+    };
+  }
+  // Неделя после нашего старта — напоминание честно отработало и убирается само.
+  if(now > GTA_LOCAL_UNLOCK + 7 * 86400000){
+    return { state: "gone", badge: "", text: "", clock: "" };
+  }
+  return {
+    state: "out",
+    badge: "ВЫШЛА",
+    text: '<b>GTA 6 вышла!</b> Новая Зеландия оторвалась раньше всех — там играют уже ' +
+          gtaFormatPast(now - GTA_NZ_UNLOCK) + '. <span class="gta-note">Кто тут вообще геймер :)))</span>',
+    clock: ""
+  };
+}
+
+function renderGtaRibbon(){
+  const ribbon = document.getElementById("gtaRibbon");
+  if(!ribbon) return;
+  const info = gtaRibbonInfo(Date.now());
+  if(info.state === "gone"){ ribbon.hidden = true; return; }
+  let hiddenState = "";
+  try{ hiddenState = localStorage.getItem(GTA_HIDE_KEY) || ""; }catch(e){}
+  // Скрытие действует до смены состояния: когда игра реально выйдет — напомним снова.
+  ribbon.hidden = hiddenState === info.state;
+  if(ribbon.hidden) return;
+  ribbon.classList.toggle("live", info.state !== "before");
+  document.getElementById("gtaBadge").textContent = info.badge;
+  document.getElementById("gtaText").innerHTML = info.text;
+  document.getElementById("gtaClock").innerHTML = info.clock
+    ? info.clock.replace(/([\d]+ дн )?([\d]{2}):([\d]{2}):([\d]{2})/, function(_, d, h, m, s){
+        return (d ? "<span style='min-width:auto'>" + d.trim() + "</span><i>:</i>" : "") +
+               "<span>" + h + "</span><i>:</i><span>" + m + "</span><i>:</i><span>" + s + "</span>";
+      })
+    : "";
+}
+const gtaCloseBtn = document.getElementById("gtaClose");
+if(gtaCloseBtn){
+  gtaCloseBtn.onclick = ()=>{
+    const info = gtaRibbonInfo(Date.now());
+    try{ localStorage.setItem(GTA_HIDE_KEY, info.state); }catch(e){}
+    document.getElementById("gtaRibbon").hidden = true;
+  };
+}
+renderGtaRibbon();
+
 // Часы
 function tickClock(){
   if(document.hidden) return; // в фоне часы не перерисовываем
   const now = new Date();
   document.getElementById("clock").textContent = now.toLocaleTimeString("ru-RU");
+  if(typeof renderGtaRibbon === "function") renderGtaRibbon(); // таймер GTA 6
 }
 setInterval(tickClock,1000); tickClock();
+
 
 // ==== Настройки оформления ====
 // Кнопка настроек видна КАЖДОМУ посетителю сайта, но сам выбор (тема/цвет/прозрачность)
