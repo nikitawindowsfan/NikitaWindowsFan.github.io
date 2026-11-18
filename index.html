@@ -58,7 +58,7 @@ try{
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"></noscript>
 <style>
   :root{
-    /* Палитра «Vice»: ночной Майами, неон и закат */
+    /* Тёмная схема: ночной город, неон и тёплый закат */
     --bg:#12001f;
     --panel:#1b0a2b;
     --panel-rgb:27,10,43;
@@ -85,7 +85,7 @@ try{
     --ease-smooth:cubic-bezier(.22,.61,.36,1);
   }
   body.light-theme{
-    /* Дневной Майами: пастельный закат */
+    /* Светлая схема: тот же закат, но пастельный */
     --bg:#fff0f7;
     --panel:#ffffff;
     --panel-rgb:255,255,255;
@@ -794,12 +794,6 @@ try{
       var(--bg);
     background-attachment:fixed;
   }
-  /* Плёночное зерно — один слой поверх всего, очень слабый */
-  body::after{
-    content:"";position:fixed;inset:0;z-index:2;pointer-events:none;
-    opacity:.05;mix-blend-mode:overlay;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
-  }
   ::selection{background:var(--vice-pink);color:#fff;}
 
   /* Тонкий неоновый скроллбар */
@@ -814,40 +808,22 @@ try{
   /* ---- Заголовки ---- */
   h1,h2,h3,.logotype,.tab,.taskbar-title{letter-spacing:.015em;}
   .logotype{
-    font-size:clamp(30px,4.6vw,52px);line-height:.95;text-transform:uppercase;
-    background:linear-gradient(180deg,#fff3a8 0%,#ffd166 32%,#ff7ab8 66%,#ff2e88 100%);
-    -webkit-background-clip:text;background-clip:text;
-    -webkit-text-fill-color:transparent;color:transparent;
-    filter:drop-shadow(0 3px 0 rgba(120,0,60,.55)) drop-shadow(0 0 26px rgba(255,46,136,.45));
-    padding-bottom:2px;
+    font-size:clamp(21px,3.6vw,40px);line-height:1;text-transform:uppercase;
+    letter-spacing:.005em;color:#fff6fb;
+    text-shadow:0 2px 0 rgba(40,0,30,.45);
   }
-  body.light-theme .logotype{
-    background:linear-gradient(180deg,#ffb703 0%,#ff4d94 55%,#b5179e 100%);
-    -webkit-background-clip:text;background-clip:text;
-    filter:drop-shadow(0 2px 0 rgba(255,255,255,.6)) drop-shadow(0 0 18px rgba(229,20,108,.25));
-  }
-  .hero-tag{
-    display:inline-flex;align-items:center;gap:7px;margin:0 0 8px;
-    padding:4px 10px;border-radius:3px;
-    font-family:'IBM Plex Sans',sans-serif;font-size:10.5px;font-weight:700;
-    letter-spacing:.18em;text-transform:uppercase;
-    color:#12000f;background:linear-gradient(90deg,var(--vice-gold),var(--vice-orange));
-    box-shadow:0 0 18px rgba(255,138,61,.35);
-  }
+  body.light-theme .logotype{color:#2b0a25;text-shadow:none;}
   h3.block-title{
     display:flex;align-items:center;gap:9px;
     font-size:15px;text-transform:uppercase;letter-spacing:.12em;
     color:var(--text);font-weight:400;
   }
   h3.block-title::before{
-    content:"";width:22px;height:3px;border-radius:2px;flex-shrink:0;
-    background:linear-gradient(90deg,var(--vice-pink),var(--vice-orange));
-    box-shadow:0 0 10px rgba(var(--accent-rgb),.7);
+    content:"";width:14px;height:2px;border-radius:1px;flex-shrink:0;
+    background:var(--vice-pink);
   }
   .modal h2{
-    text-transform:uppercase;letter-spacing:.05em;font-size:17.5px;line-height:1.2;
-    background:linear-gradient(90deg,var(--vice-pink),var(--vice-orange));
-    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    text-transform:uppercase;letter-spacing:.05em;font-size:17.5px;line-height:1.2;font-weight:400;
   }
   .offline strong,.video-modal h2{font-family:'Anton','Unbounded',sans-serif;text-transform:uppercase;}
 
@@ -858,18 +834,14 @@ try{
   }
   .taskbar-title{font-family:'IBM Plex Sans',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;}
   .gear,.theme-toggle{border-radius:4px;}
-  .gear:hover,.theme-toggle:hover{box-shadow:0 0 14px rgba(var(--accent-rgb),.45);}
+  .gear:hover,.theme-toggle:hover{border-color:rgba(var(--accent-rgb),.6);}
 
   /* ---- Шапка ---- */
   header.hero{padding:30px 24px 22px;align-items:center;}
   header.hero > div{min-width:0;flex:1 1 auto;}
   .logotype{overflow-wrap:anywhere;}
-  header.hero img{filter:drop-shadow(0 4px 18px rgba(255,46,136,.35));}
-  body.light-theme header.hero img{filter:invert(1) drop-shadow(0 4px 18px rgba(229,20,108,.3));}
-  .hero-sub{
-    margin:6px 0 0;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--muted);
-  }
+  header.hero img{filter:drop-shadow(0 2px 6px rgba(0,0,0,.45));}
+  body.light-theme header.hero img{filter:invert(1) drop-shadow(0 2px 6px rgba(0,0,0,.18));}
 
   /* ---- Вкладки: плоские, с неоновым подчёркиванием ---- */
   nav.tabs{border-bottom:1px solid rgba(var(--accent-rgb),.35);gap:2px;}
@@ -892,45 +864,39 @@ try{
     background:linear-gradient(180deg,rgba(var(--accent-rgb),.16),rgba(var(--accent-rgb),0));
     border-color:transparent;box-shadow:none;color:var(--text);
   }
-  .tab.active::after{transform:scaleX(1);box-shadow:0 0 12px rgba(var(--accent-rgb),.8);}
+  .tab.active::after{transform:scaleX(1);}
   .tab:active{transform:none;}
 
   /* ---- Основная панель: стекло с неоновой рамкой ---- */
   main{
-    border:1px solid rgba(var(--accent-rgb),.28);
+    border:1px solid rgba(var(--accent-rgb),.22);
     border-top:none;
-    box-shadow:0 30px 80px -40px rgba(var(--accent-rgb),.55), inset 0 1px 0 rgba(255,255,255,.05);
+    box-shadow:0 24px 60px -44px rgba(0,0,0,.9);
   }
 
   /* ---- Плеер: рамка с уголками, как рамка кадра ---- */
   .player{
-    border:1px solid rgba(var(--accent-rgb),.55);
-    border-radius:6px;
-    box-shadow:0 0 0 1px rgba(0,0,0,.45), 0 18px 50px -24px rgba(var(--accent-rgb),.9);
+    border:1px solid rgba(var(--accent-rgb),.32);
+    border-radius:4px;
+    box-shadow:0 14px 34px -26px rgba(0,0,0,.95);
   }
-  .player::before,.player::after{
-    content:"";position:absolute;width:20px;height:20px;z-index:6;pointer-events:none;
-    border:2px solid var(--vice-gold);opacity:.9;
-  }
-  .player::before{top:-2px;left:-2px;border-right:none;border-bottom:none;border-radius:6px 0 0 0;}
-  .player::after{bottom:-2px;right:-2px;border-left:none;border-top:none;border-radius:0 0 6px 0;}
   .live-badge{
     background:rgba(18,0,31,.72);border-color:rgba(var(--accent-rgb),.5);
     text-transform:uppercase;letter-spacing:.1em;font-size:10px;font-weight:700;
     color:#ffd9e9;
   }
   body.light-theme .live-badge{background:rgba(255,255,255,.82);color:#8d1550;}
-  .live-badge .live-dot{box-shadow:0 0 10px var(--live);}
+  .live-badge .live-dot{position:relative;}
 
   /* ---- Кнопки ---- */
   .btn{
     border-radius:4px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
     font-size:12px;padding:11px 18px;
-    background:linear-gradient(135deg,var(--vice-pink),var(--vice-violet) 70%,#7b2bff);
+    background:var(--accent);
     color:#fff;border:none;
-    box-shadow:0 8px 24px -10px rgba(var(--accent-rgb),.9), inset 0 1px 0 rgba(255,255,255,.22);
+    box-shadow:0 6px 18px -12px rgba(var(--accent-rgb),.75);
   }
-  .btn:hover:not(:disabled){filter:brightness(1.12) saturate(1.1);box-shadow:0 12px 28px -10px rgba(var(--accent-rgb),1), inset 0 1px 0 rgba(255,255,255,.25);}
+  .btn:hover:not(:disabled){filter:brightness(1.08);box-shadow:0 8px 20px -12px rgba(var(--accent-rgb),.85), inset 0 1px 0 rgba(255,255,255,.2);}
   .btn.secondary{
     background:rgba(255,255,255,.06);color:var(--text);
     border:1px solid rgba(var(--accent-rgb),.45);box-shadow:none;
@@ -957,7 +923,7 @@ try{
     transform:scaleY(0);transform-origin:top;transition:transform .28s var(--ease-smooth);
   }
   @media(hover:hover){
-    .video-card:hover{transform:translateY(-2px);border-color:rgba(var(--accent-rgb),.6);box-shadow:0 16px 34px -18px rgba(var(--accent-rgb),.85);}
+    .video-card:hover{transform:translateY(-2px);border-color:rgba(var(--accent-rgb),.6);box-shadow:0 12px 26px -20px rgba(0,0,0,.95);}
     .video-card:hover::before{transform:scaleY(1);}
   }
   .news-item{border-bottom:1px solid rgba(var(--accent-rgb),.18);}
@@ -1009,8 +975,8 @@ try{
 
   /* ---- Поля и окна ---- */
   .modal{
-    border:1px solid rgba(var(--accent-rgb),.4);border-radius:6px;
-    box-shadow:0 40px 90px -40px rgba(var(--accent-rgb),.9), inset 0 1px 0 rgba(255,255,255,.06);
+    border:1px solid rgba(var(--accent-rgb),.3);border-radius:6px;
+    box-shadow:0 30px 70px -40px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.05);
   }
   .overlay{background:rgba(8,0,16,.7);}
   .modal input,.modal textarea{
@@ -1030,7 +996,7 @@ try{
     box-shadow:inset 0 0 0 1px var(--vice-pink),0 0 16px -4px rgba(var(--accent-rgb),.8);
   }
   .swatch{border-radius:4px;}
-  hr.divider{border-top-color:rgba(var(--accent-rgb),.22);}
+  hr.divider{border-top-color:rgba(var(--accent-rgb),.18);}
   .admin-hint{color:var(--muted);}
   .role-row{border-color:rgba(var(--accent-rgb),.22);border-radius:5px;}
 
@@ -1061,9 +1027,6 @@ try{
     background:linear-gradient(180deg,rgba(255,240,247,.97) 0%,rgba(255,240,247,.75) 32%,rgba(255,240,247,.25) 62%),url("vice.svg") center bottom / cover no-repeat,var(--bg);
     background-attachment:scroll;
   }
-  html.perf-lite body::after{display:none;}
-  html.perf-lite .logotype{filter:none;}
-  html.perf-lite .player::before,html.perf-lite .player::after{display:none;}
 
   /* ===== Напоминалка о выходе GTA 6 =====
      Полоса над шапкой: сообщение + живой таймер. Состояния переключаются
@@ -1076,35 +1039,23 @@ try{
     font-size:12.5px;color:#ffe6f2;
     position:relative;overflow:hidden;
   }
-  .gta-ribbon::after{
-    content:"";position:absolute;inset:0;pointer-events:none;
-    background:linear-gradient(90deg,transparent,rgba(255,200,87,.16),transparent);
-    transform:translateX(-100%);
-    animation:gta-sheen 7s ease-in-out infinite;
-  }
-  @keyframes gta-sheen{0%,72%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
   .gta-ribbon[hidden]{display:none;}
   .gta-badge{
     flex-shrink:0;display:inline-flex;align-items:center;gap:6px;
     padding:4px 9px;border-radius:3px;
     font-family:'Anton','Unbounded',sans-serif;font-size:12px;letter-spacing:.14em;
-    color:#180014;background:linear-gradient(135deg,#ffe98a,#ffc857 55%,#ff8a3d);
-    box-shadow:0 0 16px rgba(255,200,87,.45);
+    color:#2a0018;background:#ffc857;
   }
   .gta-text{flex:1 1 auto;min-width:0;line-height:1.35;}
   .gta-text b{color:#fff;font-weight:700;}
   .gta-text .gta-note{color:#ffb3d3;}
   .gta-clock{
-    flex-shrink:0;display:flex;align-items:center;gap:5px;
-    font-variant-numeric:tabular-nums;font-weight:700;font-size:13px;
-    color:#fff;
+    flex-shrink:0;display:flex;align-items:center;gap:3px;
+    font-variant-numeric:tabular-nums;font-weight:600;font-size:13.5px;
+    letter-spacing:.02em;color:#fff;
   }
-  .gta-clock span{
-    display:inline-block;min-width:26px;text-align:center;
-    padding:2px 5px;border-radius:3px;
-    background:rgba(0,0,0,.35);border:1px solid rgba(255,46,136,.45);
-  }
-  .gta-clock i{font-style:normal;color:var(--vice-pink);font-weight:700;}
+  .gta-clock span{min-width:1.6em;text-align:right;}
+  .gta-clock i{font-style:normal;color:rgba(255,255,255,.45);font-weight:400;}
   .gta-ribbon.live .gta-badge{background:linear-gradient(135deg,#c8ffe6,#00e6d0 60%,#00b39a);color:#00201c;}
   .gta-ribbon.live{border-bottom-color:rgba(0,230,208,.5);}
   .gta-close{
@@ -1120,13 +1071,11 @@ try{
     .gta-close{order:3;margin-left:0;}
     .gta-text{order:4;flex:1 1 100%;font-size:11.5px;}
   }
-  html.perf-lite .gta-ribbon::after{animation:none;display:none;}
 
   /* ---- Телефоны ---- */
   @media(max-width:720px){
     header.hero{padding:22px 16px 16px;gap:12px;}
-    .logotype{font-size:clamp(21px,6.6vw,32px);letter-spacing:0;}
-    .hero-sub{font-size:10px;letter-spacing:.1em;}
+    .logotype{font-size:clamp(18px,5.2vw,28px);letter-spacing:0;line-height:1.05;}
     .tab{padding:11px 12px 10px;font-size:10.5px;letter-spacing:.1em;}
     h3.block-title{font-size:13px;}
   }
@@ -1222,9 +1171,7 @@ try{
     <img src="logo-256.png" width="256" height="128" alt="Логотип NikitaWindowsFan" decoding="async" fetchpriority="high">
   </picture>
   <div>
-    <span class="hero-tag">Vice edition ✦ неон и закат</span>
     <p class="logotype">NikitaWindowsFan</p>
-    <p class="hero-sub">Windows, эфиры и немного Майами</p>
   </div>
 </header>
 
@@ -1378,9 +1325,9 @@ try{
     <div class="set-group">
       <div class="set-label">Режим работы <b id="perfNote"></b></div>
       <div class="seg">
-        <button type="button" id="perfAutoBtn" title="Сам подбирает режим под телефон">⚡ Авто</button>
-        <button type="button" id="perfFullBtn" title="Все эффекты и анимации">🚀 Полный</button>
-        <button type="button" id="perfLiteBtn" title="Полегче: без размытий и постоянных анимаций">🪶 Лёгкий</button>
+        <button type="button" id="perfAutoBtn" title="Сам подбирает режим под телефон">Авто</button>
+        <button type="button" id="perfFullBtn" title="Все эффекты и анимации">Полный</button>
+        <button type="button" id="perfLiteBtn" title="Полегче: без размытий и постоянных анимаций">Лёгкий</button>
       </div>
       <p class="admin-hint" style="margin:8px 0 0;">«Авто» включает лёгкий режим на слабых телефонах,
         при экономии трафика или медленной сети — сайт остаётся плавным и меньше греет батарею.</p>
@@ -1816,7 +1763,7 @@ function gtaRibbonInfo(now){
       state: "before",
       badge: "GTA 6",
       text: '<b>Grand Theft Auto VI</b> выходит 19 ноября. Первой играет <b>Новая Зеландия</b> — ' +
-            'у них полночь наступит раньше всех. <span class="gta-note">Даже если ты не геймер — теперь ты в курсе 😎</span>',
+            'у них полночь наступит раньше всех. <span class="gta-note">Даже если ты не геймер — теперь ты в курсе.</span>',
       clock: left.text
     };
   }
